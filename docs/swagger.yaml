@@ -1,6 +1,6 @@
 basePath: /api
 definitions:
-  main.Employee:
+  handlers.Employee:
     properties:
       birth_date:
         type: string
@@ -61,14 +61,14 @@ paths:
         name: employee
         required: true
         schema:
-          $ref: '#/definitions/main.Employee'
+          $ref: '#/definitions/handlers.Employee'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/main.Employee'
+            $ref: '#/definitions/handlers.Employee'
         "400":
           description: Invalid request body or missing required fields
           schema:
@@ -101,7 +101,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/main.Employee'
+            $ref: '#/definitions/handlers.Employee'
         "400":
           description: Employee ID is required
           schema:

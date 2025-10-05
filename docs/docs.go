@@ -43,7 +43,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/main.Employee"
+                            "$ref": "#/definitions/handlers.Employee"
                         }
                     }
                 ],
@@ -51,7 +51,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/main.Employee"
+                            "$ref": "#/definitions/handlers.Employee"
                         }
                     },
                     "400": {
@@ -101,7 +101,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/main.Employee"
+                            "$ref": "#/definitions/handlers.Employee"
                         }
                     },
                     "400": {
@@ -133,7 +133,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "main.Employee": {
+        "handlers.Employee": {
             "type": "object",
             "properties": {
                 "birth_date": {
