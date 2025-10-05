@@ -84,4 +84,41 @@ paths:
       summary: Create a new employee
       tags:
       - employees
+  /employees:
+    get:
+      consumes:
+      - application/json
+      description: Get employee details by employee ID
+      parameters:
+      - description: Employee ID (UUID)
+        in: query
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.Employee'
+        "400":
+          description: Employee ID is required
+          schema:
+            type: string
+        "404":
+          description: Employee not found
+          schema:
+            type: string
+        "405":
+          description: Method not allowed
+          schema:
+            type: string
+        "500":
+          description: Error retrieving employee
+          schema:
+            type: string
+      summary: Get employee by ID
+      tags:
+      - employees
 swagger: "2.0"

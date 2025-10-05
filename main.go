@@ -3,28 +3,17 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	_ "backend/docs"
 
+	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 	httpSwagger "github.com/swaggo/http-swagger"
 )
-
-// @title Employee Management API
-// @version 1.0
-// @description API for managing employees with PostgreSQL database
-// @termsOfService http://swagger.io/terms/
-
-// @contact.name API Support
-// @contact.email support@example.com
-
-// @license.name Apache 2.0
-// @license.url http://www.apache.org/licenses/LICENSE-2.0.html
-
-// @host localhost:8080
-// @BasePath /api
 
 type Employee struct {
 	ID             string `json:"id"`
@@ -49,8 +38,23 @@ type Employee struct {
 var db *sql.DB
 
 func initDB() {
-	var err error
-	connStr := "host=localhost port=5432 user=postgres password=1234 dbname=IDS-warp sslmode=disable"
+	// Load environment variables from .env file
+	err := godotenv.Load()
+	if err != nil {
+		log.Println("Warning: Error loading .env file, using system environment variables")
+	}
+
+	// Build connection string from environment variables
+	connStr := fmt.Sprintf(
+		"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
+		os.Getenv("DB_HOST"),
+		os.Getenv("DB_PORT"),
+		os.Getenv("DB_USER"),
+		os.Getenv("DB_PASSWORD"),
+		os.Getenv("DB_NAME"),
+		os.Getenv("DB_SSLMODE"),
+	)
+
 	db, err = sql.Open("postgres", connStr)
 	if err != nil {
 		log.Fatal("Error connecting to database:", err)
@@ -138,6 +142,117 @@ func createEmployee(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(employee)
 }
 
+// GetEmployeeByID godoc
+// @Summary Get employee by ID
+// @Description Get employee details by employee ID
+// @Tags employees
+// @Accept json
+// @Produce json
+// @Param id query string true "Employee ID (UUID)"
+// @Success 200 {object} Employee
+// @Failure 400 {string} string "Employee ID is required"
+// @Failure 404 {string} string "Employee not found"
+// @Failure 405 {string} string "Method not allowed"
+// @Failure 500 {string} string "Error retrieving employee"
+// @Router /employees [get]
+func getEmployeeByID(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Get employee ID from query parameter
+	employeeID := r.URL.Query().Get("id")
+	if employeeID == "" {
+		http.Error(w, "Employee ID is required", http.StatusBadRequest)
+		return
+	}
+
+	// Query employee from database
+	query := `SELECT id, employee_code, prefix_name, first_name, last_name, nickname, 
+				email, phone_number, gender, birth_date, hire_date, department, 
+				position, employment_type, is_active, created_at, updated_at 
+			  FROM m_employees WHERE id = $1`
+
+	var employee Employee
+	var birthDate, hireDate, createdAt, updatedAt sql.NullTime
+	var employeeCode, nickname, email, phoneNumber, department, position sql.NullString
+	var gender, employmentType sql.NullInt32
+
+	err := db.QueryRow(query, employeeID).Scan(
+		&employee.ID,
+		&employeeCode,
+		&employee.PrefixName,
+		&employee.FirstName,
+		&employee.LastName,
+		&nickname,
+		&email,
+		&phoneNumber,
+		&gender,
+		&birthDate,
+		&hireDate,
+		&department,
+		&position,
+		&employmentType,
+		&employee.IsActive,
+		&createdAt,
+		&updatedAt,
+	)
+
+	if err == sql.ErrNoRows {
+		http.Error(w, "Employee not found", http.StatusNotFound)
+		return
+	}
+
+	if err != nil {
+		http.Error(w, "Error retrieving employee: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Handle nullable fields
+	if employeeCode.Valid {
+		employee.EmployeeCode = employeeCode.String
+	}
+	if nickname.Valid {
+		employee.Nickname = nickname.String
+	}
+	if email.Valid {
+		employee.Email = email.String
+	}
+	if phoneNumber.Valid {
+		employee.PhoneNumber = phoneNumber.String
+	}
+	if gender.Valid {
+		employee.Gender = int(gender.Int32)
+	}
+	if birthDate.Valid {
+		employee.BirthDate = birthDate.Time.Format("2006-01-02")
+	}
+	if hireDate.Valid {
+		employee.HireDate = hireDate.Time.Format("2006-01-02")
+	}
+	if department.Valid {
+		employee.Department = department.String
+	}
+	if position.Valid {
+		employee.Position = position.String
+	}
+	if employmentType.Valid {
+		employee.EmploymentType = int(employmentType.Int32)
+	}
+	if createdAt.Valid {
+		employee.CreatedAt = createdAt.Time.Format("2006-01-02 15:04:05")
+	}
+	if updatedAt.Valid {
+		employee.UpdatedAt = updatedAt.Time.Format("2006-01-02 15:04:05")
+	}
+
+	// Return employee
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(employee)
+}
+
 func enableCORS(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -160,13 +275,18 @@ func main() {
 
 	// Setup routes
 	http.HandleFunc("/api/create/employees", enableCORS(createEmployee))
+	http.HandleFunc("/api/employees", enableCORS(getEmployeeByID))
 
 	// Swagger route
 	http.HandleFunc("/swagger/", httpSwagger.WrapHandler)
 
 	// Start server
-	port := ":8080"
-	log.Printf("Server starting on port %s", port)
-	log.Printf("Swagger UI available at http://localhost%s/swagger/index.html", port)
-	log.Fatal(http.ListenAndServe(port, nil))
+	port := os.Getenv("SERVER_PORT")
+	if port == "" {
+		port = "8080" // Default port if not set
+	}
+	serverAddr := ":" + port
+	log.Printf("Server starting on port %s", serverAddr)
+	log.Printf("Swagger UI available at http://localhost%s/swagger/index.html", serverAddr)
+	log.Fatal(http.ListenAndServe(serverAddr, nil))
 }
