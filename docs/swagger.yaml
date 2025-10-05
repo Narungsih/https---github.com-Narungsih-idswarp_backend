@@ -1,0 +1,87 @@
+basePath: /api
+definitions:
+  main.Employee:
+    properties:
+      birth_date:
+        type: string
+      created_at:
+        type: string
+      department:
+        type: string
+      email:
+        type: string
+      employee_code:
+        type: string
+      employment_type:
+        type: integer
+      first_name:
+        type: string
+      gender:
+        type: integer
+      hire_date:
+        type: string
+      id:
+        type: string
+      is_active:
+        type: boolean
+      last_name:
+        type: string
+      nickname:
+        type: string
+      phone_number:
+        type: string
+      position:
+        type: string
+      prefix_name:
+        type: string
+      updated_at:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@example.com
+    name: API Support
+  description: API for managing employees with PostgreSQL database
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Employee Management API
+  version: "1.0"
+paths:
+  /create/employees:
+    post:
+      consumes:
+      - application/json
+      description: Create a new employee with the provided information
+      parameters:
+      - description: Employee object that needs to be created
+        in: body
+        name: employee
+        required: true
+        schema:
+          $ref: '#/definitions/main.Employee'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/main.Employee'
+        "400":
+          description: Invalid request body or missing required fields
+          schema:
+            type: string
+        "405":
+          description: Method not allowed
+          schema:
+            type: string
+        "500":
+          description: Error creating employee
+          schema:
+            type: string
+      summary: Create a new employee
+      tags:
+      - employees
+swagger: "2.0"
