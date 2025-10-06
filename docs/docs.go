@@ -23,7 +23,7 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/create/employees": {
+        "/employee": {
             "post": {
                 "description": "Create a new employee with the provided information",
                 "consumes": [
@@ -33,7 +33,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "employees"
+                    "employee"
                 ],
                 "summary": "Create a new employee",
                 "parameters": [
@@ -75,7 +75,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/employees": {
+        "/employee/{id}": {
             "get": {
                 "description": "Get employee details by employee ID",
                 "consumes": [
@@ -85,7 +85,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "employees"
+                    "employee"
                 ],
                 "summary": "Get employee by ID",
                 "parameters": [
@@ -93,7 +93,7 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Employee ID (UUID)",
                         "name": "id",
-                        "in": "query",
+                        "in": "path",
                         "required": true
                     }
                 ],
@@ -198,8 +198,8 @@ var SwaggerInfo = &swag.Spec{
 	Host:             "localhost:8080",
 	BasePath:         "/api",
 	Schemes:          []string{},
-	Title:            "Employee Management API",
-	Description:      "API for managing employees with PostgreSQL database",
+	Title:            "IDS.Warp API",
+	Description:      "API for managing employee for The Island digital solution Co., Ltd.",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

@@ -31,7 +31,7 @@ var DB *sql.DB
 // CreateEmployee godoc
 // @Summary Create a new employee
 // @Description Create a new employee with the provided information
-// @Tags employees
+// @Tags employee
 // @Accept json
 // @Produce json
 // @Param employee body Employee true "Employee object that needs to be created"
@@ -39,7 +39,7 @@ var DB *sql.DB
 // @Failure 400 {string} string "Invalid request body or missing required fields"
 // @Failure 405 {string} string "Method not allowed"
 // @Failure 500 {string} string "Error creating employee"
-// @Router /create/employees [post]
+// @Router /employee [post]
 func CreateEmployee(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -78,24 +78,27 @@ func CreateEmployee(w http.ResponseWriter, r *http.Request) {
 // GetEmployeeByID godoc
 // @Summary Get employee by ID
 // @Description Get employee details by employee ID
-// @Tags employees
+// @Tags employee
 // @Accept json
 // @Produce json
-// @Param id query string true "Employee ID (UUID)"
+// @Param id path string true "Employee ID (UUID)"
 // @Success 200 {object} Employee
 // @Failure 400 {string} string "Employee ID is required"
 // @Failure 404 {string} string "Employee not found"
 // @Failure 405 {string} string "Method not allowed"
 // @Failure 500 {string} string "Error retrieving employee"
-// @Router /employees [get]
+// @Router /employee/{id} [get]
 func GetEmployeeByID(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	// Get employee ID from query parameter
-	employeeID := r.URL.Query().Get("id")
+	// Get employee ID from URL path
+	// Extract ID from path like /api/employee/123
+	path := r.URL.Path
+	employeeID := path[len("/api/employee/"):]
+
 	if employeeID == "" {
 		http.Error(w, "Employee ID is required", http.StatusBadRequest)
 		return

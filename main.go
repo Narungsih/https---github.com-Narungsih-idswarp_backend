@@ -14,20 +14,6 @@ import (
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
-// @title Employee Management API
-// @version 1.0
-// @description API for managing employees with PostgreSQL database
-// @termsOfService http://swagger.io/terms/
-
-// @contact.name API Support
-// @contact.email support@example.com
-
-// @license.name Apache 2.0
-// @license.url http://www.apache.org/licenses/LICENSE-2.0.html
-
-// @host localhost:8080
-// @BasePath /api
-
 func main() {
 	// Initialize database connection
 	database.InitDB()
@@ -37,8 +23,8 @@ func main() {
 	handlers.DB = database.DB
 
 	// Setup routes
-	http.HandleFunc("/api/create/employees", middleware.EnableCORS(handlers.CreateEmployee))
-	http.HandleFunc("/api/employees", middleware.EnableCORS(handlers.GetEmployeeByID))
+	http.HandleFunc("/api/employee", middleware.EnableCORS(handlers.CreateEmployee))
+	http.HandleFunc("/api/employee/", middleware.EnableCORS(handlers.GetEmployeeByID))
 
 	// Swagger route
 	http.HandleFunc("/swagger/", httpSwagger.WrapHandler)
