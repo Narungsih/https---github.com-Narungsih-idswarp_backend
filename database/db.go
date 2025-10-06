@@ -43,7 +43,7 @@ func InitDB() {
 
 	// Create employees table if it doesn't exist
 	createTableQuery := `
-	CREATE TABLE IF NOT EXISTS m_employees (
+	CREATE TABLE IF NOT EXISTS m_employee (
 		id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 		employee_code VARCHAR(20),
 		prefix_name VARCHAR(50) NOT NULL,

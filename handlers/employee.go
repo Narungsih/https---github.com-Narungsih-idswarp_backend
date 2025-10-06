@@ -60,7 +60,7 @@ func CreateEmployee(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Insert employee into database
-	query := `INSERT INTO m_employees (employee_code, prefix_name, first_name, last_name, nickname, email, phone_number, gender, birth_date, hire_date, department, position, employment_type) 
+	query := `INSERT INTO m_employee (employee_code, prefix_name, first_name, last_name, nickname, email, phone_number, gender, birth_date, hire_date, department, position, employment_type) 
 				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id`
 
 	err = DB.QueryRow(query, "", employee.PrefixName, employee.FirstName, employee.LastName, "", "", "", 0, nil, nil, "", "", 0).Scan(&employee.ID)
@@ -108,7 +108,7 @@ func GetEmployeeByID(w http.ResponseWriter, r *http.Request) {
 	query := `SELECT id, employee_code, prefix_name, first_name, last_name, nickname, 
 				email, phone_number, gender, birth_date, hire_date, department, 
 				position, employment_type, is_active, created_at, updated_at 
-			  FROM m_employees WHERE id = $1`
+			  FROM m_employee WHERE id = $1`
 
 	var employee Employee
 	var birthDate, hireDate, createdAt, updatedAt sql.NullTime
