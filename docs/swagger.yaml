@@ -1,4 +1,3 @@
-basePath: /api
 definitions:
   handlers.Employee:
     properties:
@@ -37,18 +36,23 @@ definitions:
       updated_at:
         type: string
     type: object
-host: localhost:8080
+  handlers.EmployeeListResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/handlers.Employee'
+        type: array
+      page:
+        type: integer
+      page_size:
+        type: integer
+      total:
+        type: integer
+      total_pages:
+        type: integer
+    type: object
 info:
-  contact:
-    email: support@example.com
-    name: API Support
-  description: API for managing employees with PostgreSQL database
-  license:
-    name: Apache 2.0
-    url: http://www.apache.org/licenses/LICENSE-2.0.html
-  termsOfService: http://swagger.io/terms/
-  title: IDS.Warp API
-  version: "1.0"
+  contact: {}
 paths:
   /employee:
     post:
@@ -85,6 +89,44 @@ paths:
       tags:
       - employee
   /employee/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete employee by employee ID
+      parameters:
+      - description: Employee ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Employee deleted successfully
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Employee ID is required
+          schema:
+            type: string
+        "404":
+          description: Employee not found
+          schema:
+            type: string
+        "405":
+          description: Method not allowed
+          schema:
+            type: string
+        "500":
+          description: Error deleting employee
+          schema:
+            type: string
+      summary: Delete an employee
+      tags:
+      - employee
     get:
       consumes:
       - application/json
@@ -119,6 +161,96 @@ paths:
           schema:
             type: string
       summary: Get employee by ID
+      tags:
+      - employee
+    put:
+      consumes:
+      - application/json
+      description: Update employee details by employee ID
+      parameters:
+      - description: Employee ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Updated employee object
+        in: body
+        name: employee
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.Employee'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.Employee'
+        "400":
+          description: Invalid request body or Employee ID is required
+          schema:
+            type: string
+        "404":
+          description: Employee not found
+          schema:
+            type: string
+        "405":
+          description: Method not allowed
+          schema:
+            type: string
+        "500":
+          description: Error updating employee
+          schema:
+            type: string
+      summary: Update an employee
+      tags:
+      - employee
+  /employees:
+    get:
+      consumes:
+      - application/json
+      description: Get paginated list of employees with optional sorting
+      parameters:
+      - description: 'Page number (default: 1)'
+        in: query
+        name: page
+        type: integer
+      - description: 'Page size (default: 10, max: 100)'
+        in: query
+        name: page_size
+        type: integer
+      - description: Sort by field (id, first_name, last_name, created_at, etc.)
+        in: query
+        name: sort_by
+        type: string
+      - description: 'Sort order (asc, desc) default: asc'
+        in: query
+        name: sort_order
+        type: string
+      - description: Search in first_name, last_name, email
+        in: query
+        name: search
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.EmployeeListResponse'
+        "400":
+          description: Invalid parameters
+          schema:
+            type: string
+        "405":
+          description: Method not allowed
+          schema:
+            type: string
+        "500":
+          description: Error retrieving employees
+          schema:
+            type: string
+      summary: Get list of employees with pagination and sorting
       tags:
       - employee
 swagger: "2.0"

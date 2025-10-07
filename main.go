@@ -14,6 +14,33 @@ import (
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
+// employeeHandler routes requests based on HTTP method
+func employeeHandler(w http.ResponseWriter, r *http.Request) {
+	// Check if it's a single employee operation (has ID in path)
+	path := r.URL.Path
+	if len(path) > len("/api/employee/") && path != "/api/employee" {
+		// Operations on specific employee by ID
+		switch r.Method {
+		case http.MethodGet:
+			handlers.GetEmployeeByID(w, r)
+		case http.MethodPut:
+			handlers.UpdateEmployee(w, r)
+		case http.MethodDelete:
+			handlers.DeleteEmployee(w, r)
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	} else {
+		// Operations on employee collection
+		switch r.Method {
+		case http.MethodPost:
+			handlers.CreateEmployee(w, r)
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	}
+}
+
 func main() {
 	// Initialize database connection
 	database.InitDB()
@@ -23,8 +50,9 @@ func main() {
 	handlers.DB = database.DB
 
 	// Setup routes
-	http.HandleFunc("/api/employee", middleware.EnableCORS(handlers.CreateEmployee))
-	http.HandleFunc("/api/employee/", middleware.EnableCORS(handlers.GetEmployeeByID))
+	http.HandleFunc("/api/employee", middleware.EnableCORS(employeeHandler))
+	http.HandleFunc("/api/employee/", middleware.EnableCORS(employeeHandler))
+	http.HandleFunc("/api/employees", middleware.EnableCORS(handlers.GetEmployeeList))
 
 	// Swagger route
 	http.HandleFunc("/swagger/", httpSwagger.WrapHandler)
