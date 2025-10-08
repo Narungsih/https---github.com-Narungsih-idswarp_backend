@@ -14,6 +14,12 @@ import (
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
+// @title Employee Management API
+// @version 1.0
+// @description API for managing employees with bilingual support
+// @host localhost:8080
+// @BasePath /api
+
 // employeeHandler routes requests based on HTTP method
 func employeeHandler(w http.ResponseWriter, r *http.Request) {
 	// Check if it's a single employee operation (has ID in path)

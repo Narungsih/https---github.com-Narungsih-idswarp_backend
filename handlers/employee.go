@@ -10,23 +10,33 @@ import (
 )
 
 type Employee struct {
-	ID             string `json:"id"`
-	EmployeeCode   string `json:"employee_code"`
-	PrefixName     string `json:"prefix_name"`
-	FirstName      string `json:"first_name"`
-	LastName       string `json:"last_name"`
-	Nickname       string `json:"nickname"`
-	Email          string `json:"email"`
-	PhoneNumber    string `json:"phone_number"`
-	Gender         int    `json:"gender"`
-	BirthDate      string `json:"birth_date"`
-	HireDate       string `json:"hire_date"`
-	Department     string `json:"department"`
-	Position       string `json:"position"`
-	EmploymentType int    `json:"employment_type"`
-	IsActive       bool   `json:"is_active"`
-	CreatedAt      string `json:"created_at"`
-	UpdatedAt      string `json:"updated_at"`
+	EmployeeID       string `json:"employee_id"`
+	EmploymentType   int    `json:"employment_type"`
+	Title            int    `json:"title"`
+	FirstNameEN      string `json:"first_name_en"`
+	LastNameEN       string `json:"last_name_en"`
+	FirstNameTH      string `json:"first_name_th"`
+	LastNameTH       string `json:"last_name_th"`
+	NickNameEN       string `json:"nick_name_en"`
+	NickNameTH       string `json:"nick_name_th"`
+	PhoneNumber      string `json:"phone_number"`
+	CompanyEmail     string `json:"company_email"`
+	Nationality      string `json:"nationality"`
+	Gender           int    `json:"gender"`
+	TaxID            string `json:"tax_id"`
+	BirthDate        string `json:"birth_date"`
+	StartWorkDate    string `json:"start_work_date"`
+	Status           int    `json:"status"`
+	Remark           string `json:"remark"`
+	Department       string `json:"department"`
+	Position         string `json:"position"`
+	Photo            string `json:"photo"`
+	CustomAttributes string `json:"custom_attributes"`
+	CreatedBy        string `json:"created_by"`
+	CreatedDate      string `json:"created_date"`
+	UpdatedBy        string `json:"updated_by,omitempty"`
+	UpdatedDate      string `json:"updated_date,omitempty"`
+	IsActive         bool   `json:"is_active"`
 }
 
 type EmployeeListResponse struct {
@@ -41,15 +51,14 @@ var DB *sql.DB
 
 // CreateEmployee godoc
 // @Summary Create a new employee
-// @Description Create a new employee with the provided information
+// @Description Create a new employee with bilingual information
 // @Tags employee
 // @Accept json
 // @Produce json
-// @Param employee body Employee true "Employee object that needs to be created"
+// @Param employee body Employee true "Employee object"
 // @Success 201 {object} Employee
-// @Failure 400 {string} string "Invalid request body or missing required fields"
-// @Failure 405 {string} string "Method not allowed"
-// @Failure 500 {string} string "Error creating employee"
+// @Failure 400 {string} string "Bad request"
+// @Failure 500 {string} string "Server error"
 // @Router /employee [post]
 func CreateEmployee(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -58,29 +67,42 @@ func CreateEmployee(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var employee Employee
-	err := json.NewDecoder(r.Body).Decode(&employee)
-	if err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&employee); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	// Validate required fields
-	if employee.PrefixName == "" || employee.FirstName == "" || employee.LastName == "" {
-		http.Error(w, "prefix_name, first_name and last_name are required", http.StatusBadRequest)
-		return
+	if employee.CreatedBy == "" {
+		employee.CreatedBy = "00000000-0000-0000-0000-000000000000"
 	}
 
-	// Insert employee into database
-	query := `INSERT INTO m_employee (employee_code, prefix_name, first_name, last_name, nickname, email, phone_number, gender, birth_date, hire_date, department, position, employment_type) 
-				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id`
+	query := `INSERT INTO m_employee (
+		employment_type, title, first_name_en, last_name_en, first_name_th, last_name_th,
+		nick_name_en, nick_name_th, phone_number, company_email, nationality, gender,
+		tax_id, birth_date, start_work_date, status, remark, department, position,
+		photo, custom_attributes, created_by, is_active
+	) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14::timestamp, $15::timestamp, $16, $17, $18, $19, $20, $21, $22::uuid, $23) 
+	RETURNING employee_id, created_date`
 
-	err = DB.QueryRow(query, "", employee.PrefixName, employee.FirstName, employee.LastName, "", "", "", 0, nil, nil, "", "", 0).Scan(&employee.ID)
+	var createdDate sql.NullTime
+	err := DB.QueryRow(query,
+		employee.EmploymentType, employee.Title, employee.FirstNameEN, employee.LastNameEN,
+		employee.FirstNameTH, employee.LastNameTH, employee.NickNameEN, employee.NickNameTH,
+		employee.PhoneNumber, employee.CompanyEmail, employee.Nationality, employee.Gender,
+		employee.TaxID, employee.BirthDate, employee.StartWorkDate, employee.Status,
+		employee.Remark, employee.Department, employee.Position, employee.Photo,
+		employee.CustomAttributes, employee.CreatedBy, employee.IsActive,
+	).Scan(&employee.EmployeeID, &createdDate)
+
 	if err != nil {
 		http.Error(w, "Error creating employee: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// Return created employee
+	if createdDate.Valid {
+		employee.CreatedDate = createdDate.Time.Format("2023-01-15T00:00:00Z")
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(employee)
@@ -90,14 +112,11 @@ func CreateEmployee(w http.ResponseWriter, r *http.Request) {
 // @Summary Get employee by ID
 // @Description Get employee details by employee ID
 // @Tags employee
-// @Accept json
 // @Produce json
-// @Param id path string true "Employee ID (UUID)"
+// @Param id path string true "Employee ID"
 // @Success 200 {object} Employee
-// @Failure 400 {string} string "Employee ID is required"
-// @Failure 404 {string} string "Employee not found"
-// @Failure 405 {string} string "Method not allowed"
-// @Failure 500 {string} string "Error retrieving employee"
+// @Failure 404 {string} string "Not found"
+// @Failure 500 {string} string "Server error"
 // @Router /employee/{id} [get]
 func GetEmployeeByID(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
@@ -105,116 +124,72 @@ func GetEmployeeByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get employee ID from URL path
-	// Extract ID from path like /api/employee/123
-	path := r.URL.Path
-	employeeID := path[len("/api/employee/"):]
-
+	employeeID := r.URL.Path[len("/api/employee/"):]
 	if employeeID == "" {
 		http.Error(w, "Employee ID is required", http.StatusBadRequest)
 		return
 	}
 
-	// Query employee from database
-	query := `SELECT id, employee_code, prefix_name, first_name, last_name, nickname, 
-				email, phone_number, gender, birth_date, hire_date, department, 
-				position, employment_type, is_active, created_at, updated_at 
-			  FROM m_employee WHERE id = $1`
+	query := `SELECT employee_id, employment_type, title, first_name_en, last_name_en, first_name_th, last_name_th,
+		nick_name_en, nick_name_th, phone_number, company_email, nationality, gender, tax_id, birth_date, 
+		start_work_date, status, remark, department, position, photo, custom_attributes, created_by, 
+		created_date, updated_by, updated_date, is_active FROM m_employee WHERE employee_id = $1`
 
 	var employee Employee
-	var birthDate, hireDate, createdAt, updatedAt sql.NullTime
-	var employeeCode, nickname, email, phoneNumber, department, position sql.NullString
-	var gender, employmentType sql.NullInt32
+	var birthDate, startWorkDate, createdDate, updatedDate sql.NullTime
+	var updatedBy sql.NullString
 
 	err := DB.QueryRow(query, employeeID).Scan(
-		&employee.ID,
-		&employeeCode,
-		&employee.PrefixName,
-		&employee.FirstName,
-		&employee.LastName,
-		&nickname,
-		&email,
-		&phoneNumber,
-		&gender,
-		&birthDate,
-		&hireDate,
-		&department,
-		&position,
-		&employmentType,
-		&employee.IsActive,
-		&createdAt,
-		&updatedAt,
+		&employee.EmployeeID, &employee.EmploymentType, &employee.Title,
+		&employee.FirstNameEN, &employee.LastNameEN, &employee.FirstNameTH, &employee.LastNameTH,
+		&employee.NickNameEN, &employee.NickNameTH, &employee.PhoneNumber, &employee.CompanyEmail,
+		&employee.Nationality, &employee.Gender, &employee.TaxID, &birthDate, &startWorkDate,
+		&employee.Status, &employee.Remark, &employee.Department, &employee.Position,
+		&employee.Photo, &employee.CustomAttributes, &employee.CreatedBy, &createdDate,
+		&updatedBy, &updatedDate, &employee.IsActive,
 	)
 
 	if err == sql.ErrNoRows {
 		http.Error(w, "Employee not found", http.StatusNotFound)
 		return
 	}
-
 	if err != nil {
-		http.Error(w, "Error retrieving employee: "+err.Error(), http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// Handle nullable fields
-	if employeeCode.Valid {
-		employee.EmployeeCode = employeeCode.String
-	}
-	if nickname.Valid {
-		employee.Nickname = nickname.String
-	}
-	if email.Valid {
-		employee.Email = email.String
-	}
-	if phoneNumber.Valid {
-		employee.PhoneNumber = phoneNumber.String
-	}
-	if gender.Valid {
-		employee.Gender = int(gender.Int32)
-	}
 	if birthDate.Valid {
-		employee.BirthDate = birthDate.Time.Format("2006-01-02")
+		employee.BirthDate = birthDate.Time.Format("2006-01-02 15:04:05")
 	}
-	if hireDate.Valid {
-		employee.HireDate = hireDate.Time.Format("2006-01-02")
+	if startWorkDate.Valid {
+		employee.StartWorkDate = startWorkDate.Time.Format("2006-01-02 15:04:05")
 	}
-	if department.Valid {
-		employee.Department = department.String
+	if createdDate.Valid {
+		employee.CreatedDate = createdDate.Time.Format("2006-01-02 15:04:05")
 	}
-	if position.Valid {
-		employee.Position = position.String
+	if updatedBy.Valid {
+		employee.UpdatedBy = updatedBy.String
 	}
-	if employmentType.Valid {
-		employee.EmploymentType = int(employmentType.Int32)
-	}
-	if createdAt.Valid {
-		employee.CreatedAt = createdAt.Time.Format("2006-01-02 15:04:05")
-	}
-	if updatedAt.Valid {
-		employee.UpdatedAt = updatedAt.Time.Format("2006-01-02 15:04:05")
+	if updatedDate.Valid {
+		employee.UpdatedDate = updatedDate.Time.Format("2006-01-02 15:04:05")
 	}
 
-	// Return employee
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(employee)
 }
 
 // GetEmployeeList godoc
-// @Summary Get list of employees with pagination and sorting
-// @Description Get paginated list of employees with optional sorting
+// @Summary Get list of employees
+// @Description Get paginated list of employees with sorting and search
 // @Tags employee
-// @Accept json
 // @Produce json
-// @Param page query int false "Page number (default: 1)"
-// @Param page_size query int false "Page size (default: 10, max: 100)"
-// @Param sort_by query string false "Sort by field (id, first_name, last_name, created_at, etc.)"
-// @Param sort_order query string false "Sort order (asc, desc) default: asc"
-// @Param search query string false "Search in first_name, last_name, email"
+// @Param page query int false "Page number" default(1)
+// @Param page_size query int false "Page size" default(10)
+// @Param sort_by query string false "Sort field" default(created_date)
+// @Param sort_order query string false "Sort order (asc/desc)" default(asc)
+// @Param search query string false "Search term"
 // @Success 200 {object} EmployeeListResponse
-// @Failure 400 {string} string "Invalid parameters"
-// @Failure 405 {string} string "Method not allowed"
-// @Failure 500 {string} string "Error retrieving employees"
+// @Failure 500 {string} string "Server error"
 // @Router /employees [get]
 func GetEmployeeList(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
@@ -222,177 +197,88 @@ func GetEmployeeList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Parse query parameters
 	query := r.URL.Query()
-
-	// Pagination parameters
 	page, _ := strconv.Atoi(query.Get("page"))
 	if page < 1 {
 		page = 1
 	}
-
 	pageSize, _ := strconv.Atoi(query.Get("page_size"))
 	if pageSize < 1 || pageSize > 100 {
-		pageSize = 10 // Default page size
+		pageSize = 10
 	}
 
-	// Sorting parameters
 	sortBy := query.Get("sort_by")
+	if sortBy == "" {
+		sortBy = "created_date"
+	}
 	sortOrder := query.Get("sort_order")
+	if sortOrder != "asc" && sortOrder != "desc" {
+		sortOrder = "asc"
+	}
 	search := query.Get("search")
 
-	// Validate sort fields
-	validSortFields := map[string]bool{
-		"id": true, "employee_code": true, "prefix_name": true,
-		"first_name": true, "last_name": true, "email": true,
-		"department": true, "position": true, "created_at": true,
-		"updated_at": true, "is_active": true,
-	}
-
-	if sortBy == "" {
-		sortBy = "created_at" // Default sort
-	}
-
-	if !validSortFields[sortBy] {
-		http.Error(w, "Invalid sort field", http.StatusBadRequest)
-		return
-	}
-
-	if sortOrder != "asc" && sortOrder != "desc" {
-		sortOrder = "asc" // Default order
-	}
-
-	// Build the WHERE clause for search
 	whereClause := ""
 	args := []interface{}{}
 	argIndex := 1
 
 	if search != "" {
-		whereClause = " WHERE (first_name ILIKE $" + strconv.Itoa(argIndex) +
-			" OR last_name ILIKE $" + strconv.Itoa(argIndex+1) +
-			" OR email ILIKE $" + strconv.Itoa(argIndex+2) + ")"
+		whereClause = fmt.Sprintf(" WHERE (first_name_en ILIKE $%d OR last_name_en ILIKE $%d OR company_email ILIKE $%d)",
+			argIndex, argIndex+1, argIndex+2)
 		searchPattern := "%" + search + "%"
 		args = append(args, searchPattern, searchPattern, searchPattern)
 		argIndex += 3
 	}
 
-	// Count total records
-	countQuery := "SELECT COUNT(*) FROM m_employee" + whereClause
 	var totalRecords int
-	err := DB.QueryRow(countQuery, args...).Scan(&totalRecords)
-	if err != nil {
-		http.Error(w, "Error counting employees: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
+	DB.QueryRow("SELECT COUNT(*) FROM m_employee"+whereClause, args...).Scan(&totalRecords)
 
-	// Calculate offset
 	offset := (page - 1) * pageSize
-
-	// Build the main query
-	mainQuery := fmt.Sprintf(`
-		SELECT id, employee_code, prefix_name, first_name, last_name, nickname, 
-			   email, phone_number, gender, birth_date, hire_date, department, 
-			   position, employment_type, is_active, created_at, updated_at 
-		FROM m_employee%s 
-		ORDER BY %s %s 
-		LIMIT $%d OFFSET $%d`,
+	mainQuery := fmt.Sprintf(`SELECT employee_id, employment_type, title, first_name_en, last_name_en, first_name_th, 
+		last_name_th, nick_name_en, nick_name_th, phone_number, company_email, nationality, gender, tax_id, 
+		birth_date, start_work_date, status, remark, department, position, photo, custom_attributes, created_by, 
+		created_date, updated_by, updated_date, is_active FROM m_employee%s ORDER BY %s %s LIMIT $%d OFFSET $%d`,
 		whereClause, sortBy, strings.ToUpper(sortOrder), argIndex, argIndex+1)
 
-	// Add limit and offset to args
 	args = append(args, pageSize, offset)
-
-	// Execute query
 	rows, err := DB.Query(mainQuery, args...)
 	if err != nil {
-		http.Error(w, "Error querying employees: "+err.Error(), http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	defer rows.Close()
 
-	// Parse results
 	var employees []Employee
 	for rows.Next() {
-		var employee Employee
-		var birthDate, hireDate, createdAt, updatedAt sql.NullTime
-		var employeeCode, nickname, email, phoneNumber, department, position sql.NullString
-		var gender, employmentType sql.NullInt32
+		var emp Employee
+		var birthDate, startWorkDate, createdDate, updatedDate sql.NullTime
+		var updatedBy sql.NullString
 
-		err := rows.Scan(
-			&employee.ID,
-			&employeeCode,
-			&employee.PrefixName,
-			&employee.FirstName,
-			&employee.LastName,
-			&nickname,
-			&email,
-			&phoneNumber,
-			&gender,
-			&birthDate,
-			&hireDate,
-			&department,
-			&position,
-			&employmentType,
-			&employee.IsActive,
-			&createdAt,
-			&updatedAt,
-		)
+		rows.Scan(&emp.EmployeeID, &emp.EmploymentType, &emp.Title, &emp.FirstNameEN, &emp.LastNameEN,
+			&emp.FirstNameTH, &emp.LastNameTH, &emp.NickNameEN, &emp.NickNameTH, &emp.PhoneNumber,
+			&emp.CompanyEmail, &emp.Nationality, &emp.Gender, &emp.TaxID, &birthDate, &startWorkDate,
+			&emp.Status, &emp.Remark, &emp.Department, &emp.Position, &emp.Photo, &emp.CustomAttributes,
+			&emp.CreatedBy, &createdDate, &updatedBy, &updatedDate, &emp.IsActive)
 
-		if err != nil {
-			http.Error(w, "Error scanning employee: "+err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		// Handle nullable fields
-		if employeeCode.Valid {
-			employee.EmployeeCode = employeeCode.String
-		}
-		if nickname.Valid {
-			employee.Nickname = nickname.String
-		}
-		if email.Valid {
-			employee.Email = email.String
-		}
-		if phoneNumber.Valid {
-			employee.PhoneNumber = phoneNumber.String
-		}
-		if gender.Valid {
-			employee.Gender = int(gender.Int32)
-		}
 		if birthDate.Valid {
-			employee.BirthDate = birthDate.Time.Format("2006-01-02")
+			emp.BirthDate = birthDate.Time.Format("2006-01-02 15:04:05")
 		}
-		if hireDate.Valid {
-			employee.HireDate = hireDate.Time.Format("2006-01-02")
+		if startWorkDate.Valid {
+			emp.StartWorkDate = startWorkDate.Time.Format("2006-01-02 15:04:05")
 		}
-		if department.Valid {
-			employee.Department = department.String
+		if createdDate.Valid {
+			emp.CreatedDate = createdDate.Time.Format("2006-01-02 15:04:05")
 		}
-		if position.Valid {
-			employee.Position = position.String
+		if updatedBy.Valid {
+			emp.UpdatedBy = updatedBy.String
 		}
-		if employmentType.Valid {
-			employee.EmploymentType = int(employmentType.Int32)
-		}
-		if createdAt.Valid {
-			employee.CreatedAt = createdAt.Time.Format("2006-01-02 15:04:05")
-		}
-		if updatedAt.Valid {
-			employee.UpdatedAt = updatedAt.Time.Format("2006-01-02 15:04:05")
+		if updatedDate.Valid {
+			emp.UpdatedDate = updatedDate.Time.Format("2006-01-02 15:04:05")
 		}
 
-		employees = append(employees, employee)
+		employees = append(employees, emp)
 	}
 
-	// Check for iteration errors
-	if err = rows.Err(); err != nil {
-		http.Error(w, "Error iterating employees: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	// Calculate total pages
 	totalPages := (totalRecords + pageSize - 1) / pageSize
-
-	// Build response
 	response := EmployeeListResponse{
 		Data:       employees,
 		Total:      totalRecords,
@@ -401,25 +287,22 @@ func GetEmployeeList(w http.ResponseWriter, r *http.Request) {
 		TotalPages: totalPages,
 	}
 
-	// Return response
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(response)
 }
 
 // UpdateEmployee godoc
-// @Summary Update an employee
-// @Description Update employee details by employee ID
+// @Summary Update employee
+// @Description Update employee information by ID
 // @Tags employee
 // @Accept json
 // @Produce json
-// @Param id path string true "Employee ID (UUID)"
-// @Param employee body Employee true "Updated employee object"
+// @Param id path string true "Employee ID"
+// @Param employee body Employee true "Employee object"
 // @Success 200 {object} Employee
-// @Failure 400 {string} string "Invalid request body or Employee ID is required"
-// @Failure 404 {string} string "Employee not found"
-// @Failure 405 {string} string "Method not allowed"
-// @Failure 500 {string} string "Error updating employee"
+// @Failure 400 {string} string "Bad request"
+// @Failure 404 {string} string "Not found"
+// @Failure 500 {string} string "Server error"
 // @Router /employee/{id} [put]
 func UpdateEmployee(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPut {
@@ -427,156 +310,76 @@ func UpdateEmployee(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get employee ID from URL path
-	path := r.URL.Path
-	employeeID := path[len("/api/employee/"):]
-
-	if employeeID == "" {
-		http.Error(w, "Employee ID is required", http.StatusBadRequest)
-		return
-	}
-
-	// Parse request body
+	employeeID := r.URL.Path[len("/api/employee/"):]
 	var employee Employee
-	err := json.NewDecoder(r.Body).Decode(&employee)
-	if err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&employee); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	// Validate required fields
-	if employee.PrefixName == "" || employee.FirstName == "" || employee.LastName == "" {
-		http.Error(w, "prefix_name, first_name and last_name are required", http.StatusBadRequest)
-		return
-	}
+	query := `UPDATE m_employee SET employment_type=$1, title=$2, first_name_en=$3, last_name_en=$4,
+		first_name_th=$5, last_name_th=$6, nick_name_en=$7, nick_name_th=$8, phone_number=$9, company_email=$10,
+		nationality=$11, gender=$12, tax_id=$13, birth_date=$14, start_work_date=$15, status=$16, remark=$17,
+		department=$18, position=$19, photo=$20, custom_attributes=$21, updated_by=$22, updated_date=CURRENT_TIMESTAMP, 
+		is_active=$23 WHERE employee_id=$24 RETURNING employee_id, employment_type, title, first_name_en, last_name_en, 
+		first_name_th, last_name_th, nick_name_en, nick_name_th, phone_number, company_email, nationality, gender, tax_id, 
+		birth_date, start_work_date, status, remark, department, position, photo, custom_attributes, created_by, created_date, 
+		updated_by, updated_date, is_active`
 
-	// Update employee in database
-	query := `UPDATE m_employee 
-			  SET employee_code = $1, prefix_name = $2, first_name = $3, last_name = $4, 
-			      nickname = $5, email = $6, phone_number = $7, gender = $8, 
-			      birth_date = $9, hire_date = $10, department = $11, position = $12, 
-			      employment_type = $13, is_active = $14, updated_at = CURRENT_TIMESTAMP
-			  WHERE id = $15
-			  RETURNING id, employee_code, prefix_name, first_name, last_name, nickname, 
-			            email, phone_number, gender, birth_date, hire_date, department, 
-			            position, employment_type, is_active, created_at, updated_at`
+	var updatedEmp Employee
+	var birthDate, startWorkDate, createdDate, updatedDate sql.NullTime
+	var updatedBy sql.NullString
 
-	// Prepare nullable values
-	var birthDate, hireDate interface{}
-	if employee.BirthDate != "" {
-		birthDate = employee.BirthDate
-	}
-	if employee.HireDate != "" {
-		hireDate = employee.HireDate
-	}
-
-	var updatedEmployee Employee
-	var updatedBirthDate, updatedHireDate, createdAt, updatedAt sql.NullTime
-	var employeeCode, nickname, email, phoneNumber, department, position sql.NullString
-	var gender, employmentType sql.NullInt32
-
-	err = DB.QueryRow(query,
-		employee.EmployeeCode,
-		employee.PrefixName,
-		employee.FirstName,
-		employee.LastName,
-		employee.Nickname,
-		employee.Email,
-		employee.PhoneNumber,
-		employee.Gender,
-		birthDate,
-		hireDate,
-		employee.Department,
-		employee.Position,
-		employee.EmploymentType,
-		employee.IsActive,
-		employeeID,
-	).Scan(
-		&updatedEmployee.ID,
-		&employeeCode,
-		&updatedEmployee.PrefixName,
-		&updatedEmployee.FirstName,
-		&updatedEmployee.LastName,
-		&nickname,
-		&email,
-		&phoneNumber,
-		&gender,
-		&updatedBirthDate,
-		&updatedHireDate,
-		&department,
-		&position,
-		&employmentType,
-		&updatedEmployee.IsActive,
-		&createdAt,
-		&updatedAt,
-	)
+	err := DB.QueryRow(query, employee.EmploymentType, employee.Title, employee.FirstNameEN, employee.LastNameEN,
+		employee.FirstNameTH, employee.LastNameTH, employee.NickNameEN, employee.NickNameTH, employee.PhoneNumber,
+		employee.CompanyEmail, employee.Nationality, employee.Gender, employee.TaxID, employee.BirthDate,
+		employee.StartWorkDate, employee.Status, employee.Remark, employee.Department, employee.Position,
+		employee.Photo, employee.CustomAttributes, employee.UpdatedBy, employee.IsActive, employeeID,
+	).Scan(&updatedEmp.EmployeeID, &updatedEmp.EmploymentType, &updatedEmp.Title, &updatedEmp.FirstNameEN,
+		&updatedEmp.LastNameEN, &updatedEmp.FirstNameTH, &updatedEmp.LastNameTH, &updatedEmp.NickNameEN,
+		&updatedEmp.NickNameTH, &updatedEmp.PhoneNumber, &updatedEmp.CompanyEmail, &updatedEmp.Nationality,
+		&updatedEmp.Gender, &updatedEmp.TaxID, &birthDate, &startWorkDate, &updatedEmp.Status,
+		&updatedEmp.Remark, &updatedEmp.Department, &updatedEmp.Position, &updatedEmp.Photo,
+		&updatedEmp.CustomAttributes, &updatedEmp.CreatedBy, &createdDate, &updatedBy, &updatedDate, &updatedEmp.IsActive)
 
 	if err == sql.ErrNoRows {
 		http.Error(w, "Employee not found", http.StatusNotFound)
 		return
 	}
-
 	if err != nil {
-		http.Error(w, "Error updating employee: "+err.Error(), http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// Handle nullable fields
-	if employeeCode.Valid {
-		updatedEmployee.EmployeeCode = employeeCode.String
+	if birthDate.Valid {
+		updatedEmp.BirthDate = birthDate.Time.Format("2006-01-02 15:04:05")
 	}
-	if nickname.Valid {
-		updatedEmployee.Nickname = nickname.String
+	if startWorkDate.Valid {
+		updatedEmp.StartWorkDate = startWorkDate.Time.Format("2006-01-02 15:04:05")
 	}
-	if email.Valid {
-		updatedEmployee.Email = email.String
+	if createdDate.Valid {
+		updatedEmp.CreatedDate = createdDate.Time.Format("2006-01-02 15:04:05")
 	}
-	if phoneNumber.Valid {
-		updatedEmployee.PhoneNumber = phoneNumber.String
+	if updatedBy.Valid {
+		updatedEmp.UpdatedBy = updatedBy.String
 	}
-	if gender.Valid {
-		updatedEmployee.Gender = int(gender.Int32)
-	}
-	if updatedBirthDate.Valid {
-		updatedEmployee.BirthDate = updatedBirthDate.Time.Format("2006-01-02")
-	}
-	if updatedHireDate.Valid {
-		updatedEmployee.HireDate = updatedHireDate.Time.Format("2006-01-02")
-	}
-	if department.Valid {
-		updatedEmployee.Department = department.String
-	}
-	if position.Valid {
-		updatedEmployee.Position = position.String
-	}
-	if employmentType.Valid {
-		updatedEmployee.EmploymentType = int(employmentType.Int32)
-	}
-	if createdAt.Valid {
-		updatedEmployee.CreatedAt = createdAt.Time.Format("2006-01-02 15:04:05")
-	}
-	if updatedAt.Valid {
-		updatedEmployee.UpdatedAt = updatedAt.Time.Format("2006-01-02 15:04:05")
+	if updatedDate.Valid {
+		updatedEmp.UpdatedDate = updatedDate.Time.Format("2006-01-02 15:04:05")
 	}
 
-	// Return updated employee
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(updatedEmployee)
+	json.NewEncoder(w).Encode(updatedEmp)
 }
 
 // DeleteEmployee godoc
-// @Summary Delete an employee
-// @Description Delete employee by employee ID
+// @Summary Delete employee
+// @Description Delete employee by ID
 // @Tags employee
-// @Accept json
 // @Produce json
-// @Param id path string true "Employee ID (UUID)"
-// @Success 200 {object} map[string]string "Employee deleted successfully"
-// @Failure 400 {string} string "Employee ID is required"
-// @Failure 404 {string} string "Employee not found"
-// @Failure 405 {string} string "Method not allowed"
-// @Failure 500 {string} string "Error deleting employee"
+// @Param id path string true "Employee ID"
+// @Success 200 {object} map[string]string
+// @Failure 404 {string} string "Not found"
+// @Failure 500 {string} string "Server error"
 // @Router /employee/{id} [delete]
 func DeleteEmployee(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
@@ -584,43 +387,19 @@ func DeleteEmployee(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get employee ID from URL path
-	path := r.URL.Path
-	employeeID := path[len("/api/employee/"):]
-
-	if employeeID == "" {
-		http.Error(w, "Employee ID is required", http.StatusBadRequest)
-		return
-	}
-
-	// Delete employee from database
-	query := `DELETE FROM m_employee WHERE id = $1`
-
-	result, err := DB.Exec(query, employeeID)
+	employeeID := r.URL.Path[len("/api/employee/"):]
+	result, err := DB.Exec("DELETE FROM m_employee WHERE employee_id = $1", employeeID)
 	if err != nil {
-		http.Error(w, "Error deleting employee: "+err.Error(), http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// Check if employee was found and deleted
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		http.Error(w, "Error checking delete result: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
-
+	rowsAffected, _ := result.RowsAffected()
 	if rowsAffected == 0 {
 		http.Error(w, "Employee not found", http.StatusNotFound)
 		return
 	}
 
-	// Return success response
-	response := map[string]string{
-		"message": "Employee deleted successfully",
-		"id":      employeeID,
-	}
-
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(response)
+	json.NewEncoder(w).Encode(map[string]string{"message": "Employee deleted successfully", "id": employeeID})
 }

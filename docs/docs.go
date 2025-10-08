@@ -17,7 +17,7 @@ const docTemplate = `{
     "paths": {
         "/employee": {
             "post": {
-                "description": "Create a new employee with the provided information",
+                "description": "Create a new employee with bilingual information",
                 "consumes": [
                     "application/json"
                 ],
@@ -30,7 +30,7 @@ const docTemplate = `{
                 "summary": "Create a new employee",
                 "parameters": [
                     {
-                        "description": "Employee object that needs to be created",
+                        "description": "Employee object",
                         "name": "employee",
                         "in": "body",
                         "required": true,
@@ -47,19 +47,13 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Invalid request body or missing required fields",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "405": {
-                        "description": "Method not allowed",
+                        "description": "Bad request",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "500": {
-                        "description": "Error creating employee",
+                        "description": "Server error",
                         "schema": {
                             "type": "string"
                         }
@@ -70,9 +64,6 @@ const docTemplate = `{
         "/employee/{id}": {
             "get": {
                 "description": "Get employee details by employee ID",
-                "consumes": [
-                    "application/json"
-                ],
                 "produces": [
                     "application/json"
                 ],
@@ -83,7 +74,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Employee ID (UUID)",
+                        "description": "Employee ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -96,26 +87,14 @@ const docTemplate = `{
                             "$ref": "#/definitions/handlers.Employee"
                         }
                     },
-                    "400": {
-                        "description": "Employee ID is required",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
                     "404": {
-                        "description": "Employee not found",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "405": {
-                        "description": "Method not allowed",
+                        "description": "Not found",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "500": {
-                        "description": "Error retrieving employee",
+                        "description": "Server error",
                         "schema": {
                             "type": "string"
                         }
@@ -123,7 +102,7 @@ const docTemplate = `{
                 }
             },
             "put": {
-                "description": "Update employee details by employee ID",
+                "description": "Update employee information by ID",
                 "consumes": [
                     "application/json"
                 ],
@@ -133,17 +112,17 @@ const docTemplate = `{
                 "tags": [
                     "employee"
                 ],
-                "summary": "Update an employee",
+                "summary": "Update employee",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Employee ID (UUID)",
+                        "description": "Employee ID",
                         "name": "id",
                         "in": "path",
                         "required": true
                     },
                     {
-                        "description": "Updated employee object",
+                        "description": "Employee object",
                         "name": "employee",
                         "in": "body",
                         "required": true,
@@ -160,25 +139,19 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Invalid request body or Employee ID is required",
+                        "description": "Bad request",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "404": {
-                        "description": "Employee not found",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "405": {
-                        "description": "Method not allowed",
+                        "description": "Not found",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "500": {
-                        "description": "Error updating employee",
+                        "description": "Server error",
                         "schema": {
                             "type": "string"
                         }
@@ -186,21 +159,18 @@ const docTemplate = `{
                 }
             },
             "delete": {
-                "description": "Delete employee by employee ID",
-                "consumes": [
-                    "application/json"
-                ],
+                "description": "Delete employee by ID",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "employee"
                 ],
-                "summary": "Delete an employee",
+                "summary": "Delete employee",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Employee ID (UUID)",
+                        "description": "Employee ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -208,7 +178,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Employee deleted successfully",
+                        "description": "OK",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -216,26 +186,14 @@ const docTemplate = `{
                             }
                         }
                     },
-                    "400": {
-                        "description": "Employee ID is required",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
                     "404": {
-                        "description": "Employee not found",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "405": {
-                        "description": "Method not allowed",
+                        "description": "Not found",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "500": {
-                        "description": "Error deleting employee",
+                        "description": "Server error",
                         "schema": {
                             "type": "string"
                         }
@@ -245,45 +203,46 @@ const docTemplate = `{
         },
         "/employees": {
             "get": {
-                "description": "Get paginated list of employees with optional sorting",
-                "consumes": [
-                    "application/json"
-                ],
+                "description": "Get paginated list of employees with sorting and search",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "employee"
                 ],
-                "summary": "Get list of employees with pagination and sorting",
+                "summary": "Get list of employees",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "Page number (default: 1)",
+                        "default": 1,
+                        "description": "Page number",
                         "name": "page",
                         "in": "query"
                     },
                     {
                         "type": "integer",
-                        "description": "Page size (default: 10, max: 100)",
+                        "default": 10,
+                        "description": "Page size",
                         "name": "page_size",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Sort by field (id, first_name, last_name, created_at, etc.)",
+                        "default": "created_date",
+                        "description": "Sort field",
                         "name": "sort_by",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Sort order (asc, desc) default: asc",
+                        "default": "asc",
+                        "description": "Sort order (asc/desc)",
                         "name": "sort_order",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Search in first_name, last_name, email",
+                        "description": "Search term",
                         "name": "search",
                         "in": "query"
                     }
@@ -295,20 +254,8 @@ const docTemplate = `{
                             "$ref": "#/definitions/handlers.EmployeeListResponse"
                         }
                     },
-                    "400": {
-                        "description": "Invalid parameters",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "405": {
-                        "description": "Method not allowed",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
                     "500": {
-                        "description": "Error retrieving employees",
+                        "description": "Server error",
                         "schema": {
                             "type": "string"
                         }
@@ -324,52 +271,82 @@ const docTemplate = `{
                 "birth_date": {
                     "type": "string"
                 },
-                "created_at": {
+                "company_email": {
+                    "type": "string"
+                },
+                "created_by": {
+                    "type": "string"
+                },
+                "created_date": {
+                    "type": "string"
+                },
+                "custom_attributes": {
                     "type": "string"
                 },
                 "department": {
                     "type": "string"
                 },
-                "email": {
-                    "type": "string"
-                },
-                "employee_code": {
+                "employee_id": {
                     "type": "string"
                 },
                 "employment_type": {
                     "type": "integer"
                 },
-                "first_name": {
+                "first_name_en": {
+                    "type": "string"
+                },
+                "first_name_th": {
                     "type": "string"
                 },
                 "gender": {
                     "type": "integer"
                 },
-                "hire_date": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
                 "is_active": {
                     "type": "boolean"
                 },
-                "last_name": {
+                "last_name_en": {
                     "type": "string"
                 },
-                "nickname": {
+                "last_name_th": {
+                    "type": "string"
+                },
+                "nationality": {
+                    "type": "string"
+                },
+                "nick_name_en": {
+                    "type": "string"
+                },
+                "nick_name_th": {
                     "type": "string"
                 },
                 "phone_number": {
                     "type": "string"
                 },
+                "photo": {
+                    "type": "string"
+                },
                 "position": {
                     "type": "string"
                 },
-                "prefix_name": {
+                "remark": {
                     "type": "string"
                 },
-                "updated_at": {
+                "start_work_date": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "integer"
+                },
+                "tax_id": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "integer"
+                },
+                "updated_by": {
+                    "type": "string"
+                },
+                "updated_date": {
                     "type": "string"
                 }
             }

@@ -41,26 +41,39 @@ func InitDB() {
 		log.Fatal("Error verifying connection to database:", err)
 	}
 
-	// Create employees table if it doesn't exist
+	// Drop existing table if it exists (to fix column name case issues)
+	_, _ = DB.Exec("DROP TABLE IF EXISTS m_employee")
+
+	// Create employees table with lowercase column names
 	createTableQuery := `
 	CREATE TABLE IF NOT EXISTS m_employee (
-		id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-		employee_code VARCHAR(20),
-		prefix_name VARCHAR(50) NOT NULL,
-		first_name VARCHAR(100) NOT NULL,
-		last_name VARCHAR(100) NOT NULL,
-		nickname VARCHAR(50),
-		email VARCHAR(150),
-		phone_number VARCHAR(50),
-		gender SMALLINT DEFAULT 0,
-		birth_date DATE,
-		hire_date DATE,
-		department VARCHAR(150),
-		position VARCHAR(150),
-		employment_type SMALLINT,
-		is_active BOOLEAN DEFAULT TRUE,
-		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-		updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		employee_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+		employment_type INT NOT NULL,
+		title INT NOT NULL,
+		first_name_en VARCHAR(50) NOT NULL,
+		last_name_en VARCHAR(50) NOT NULL,
+		first_name_th VARCHAR(50) NOT NULL,
+		last_name_th VARCHAR(50) NOT NULL,
+		nick_name_en VARCHAR(50) NOT NULL,
+		nick_name_th VARCHAR(50) NOT NULL,
+		phone_number VARCHAR(20) NOT NULL,
+		company_email VARCHAR(320) NOT NULL,
+		nationality VARCHAR(50) NOT NULL,
+		gender INT NOT NULL,
+		tax_id VARCHAR(13) NOT NULL,
+		birth_date TIMESTAMP NOT NULL,
+		start_work_date TIMESTAMP NOT NULL,
+		status INT NOT NULL,
+		remark TEXT NOT NULL,
+		department VARCHAR(50) NOT NULL,
+		position VARCHAR(50) NOT NULL,
+		photo VARCHAR(256) NOT NULL,
+		custom_attributes TEXT NOT NULL,
+		created_by UUID NOT NULL,
+		created_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+		updated_by UUID,
+		updated_date TIMESTAMP,
+		is_active BOOLEAN NOT NULL DEFAULT TRUE
 	)`
 
 	_, err = DB.Exec(createTableQuery)
