@@ -21,6 +21,7 @@ type Employee struct {
 	NickNameTH       string `json:"nick_name_th"`
 	PhoneNumber      string `json:"phone_number"`
 	CompanyEmail     string `json:"company_email"`
+	PersonalEmail    string `json:"personal_email"`
 	Nationality      string `json:"nationality"`
 	Gender           int    `json:"gender"`
 	TaxID            string `json:"tax_id"`
@@ -76,20 +77,29 @@ func CreateEmployee(w http.ResponseWriter, r *http.Request) {
 		employee.CreatedBy = "00000000-0000-0000-0000-000000000000"
 	}
 
+	// Convert string dates to nil if they're placeholder values
+	var birthDate, startWorkDate interface{}
+	if employee.BirthDate != "" && employee.BirthDate != "string" {
+		birthDate = employee.BirthDate
+	}
+	if employee.StartWorkDate != "" && employee.StartWorkDate != "string" {
+		startWorkDate = employee.StartWorkDate
+	}
+
 	query := `INSERT INTO m_employee (
 		employment_type, title, first_name_en, last_name_en, first_name_th, last_name_th,
-		nick_name_en, nick_name_th, phone_number, company_email, nationality, gender,
+		nick_name_en, nick_name_th, phone_number, company_email, personal_email, nationality, gender,
 		tax_id, birth_date, start_work_date, status, remark, department, position,
 		photo, custom_attributes, created_by, is_active
-	) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14::timestamp, $15::timestamp, $16, $17, $18, $19, $20, $21, $22::uuid, $23) 
+	) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24) 
 	RETURNING employee_id, created_date`
 
 	var createdDate sql.NullTime
 	err := DB.QueryRow(query,
 		employee.EmploymentType, employee.Title, employee.FirstNameEN, employee.LastNameEN,
 		employee.FirstNameTH, employee.LastNameTH, employee.NickNameEN, employee.NickNameTH,
-		employee.PhoneNumber, employee.CompanyEmail, employee.Nationality, employee.Gender,
-		employee.TaxID, employee.BirthDate, employee.StartWorkDate, employee.Status,
+		employee.PhoneNumber, employee.CompanyEmail, employee.PersonalEmail, employee.Nationality, employee.Gender,
+		employee.TaxID, birthDate, startWorkDate, employee.Status,
 		employee.Remark, employee.Department, employee.Position, employee.Photo,
 		employee.CustomAttributes, employee.CreatedBy, employee.IsActive,
 	).Scan(&employee.EmployeeID, &createdDate)
@@ -131,7 +141,7 @@ func GetEmployeeByID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	query := `SELECT employee_id, employment_type, title, first_name_en, last_name_en, first_name_th, last_name_th,
-		nick_name_en, nick_name_th, phone_number, company_email, nationality, gender, tax_id, birth_date, 
+		nick_name_en, nick_name_th, phone_number, company_email, personal_email, nationality, gender, tax_id, birth_date, 
 		start_work_date, status, remark, department, position, photo, custom_attributes, created_by, 
 		created_date, updated_by, updated_date, is_active FROM m_employee WHERE employee_id = $1`
 
@@ -143,7 +153,7 @@ func GetEmployeeByID(w http.ResponseWriter, r *http.Request) {
 		&employee.EmployeeID, &employee.EmploymentType, &employee.Title,
 		&employee.FirstNameEN, &employee.LastNameEN, &employee.FirstNameTH, &employee.LastNameTH,
 		&employee.NickNameEN, &employee.NickNameTH, &employee.PhoneNumber, &employee.CompanyEmail,
-		&employee.Nationality, &employee.Gender, &employee.TaxID, &birthDate, &startWorkDate,
+		&employee.PersonalEmail, &employee.Nationality, &employee.Gender, &employee.TaxID, &birthDate, &startWorkDate,
 		&employee.Status, &employee.Remark, &employee.Department, &employee.Position,
 		&employee.Photo, &employee.CustomAttributes, &employee.CreatedBy, &createdDate,
 		&updatedBy, &updatedDate, &employee.IsActive,
@@ -234,7 +244,7 @@ func GetEmployeeList(w http.ResponseWriter, r *http.Request) {
 
 	offset := (page - 1) * pageSize
 	mainQuery := fmt.Sprintf(`SELECT employee_id, employment_type, title, first_name_en, last_name_en, first_name_th, 
-		last_name_th, nick_name_en, nick_name_th, phone_number, company_email, nationality, gender, tax_id, 
+		last_name_th, nick_name_en, nick_name_th, phone_number, company_email, personal_email, nationality, gender, tax_id, 
 		birth_date, start_work_date, status, remark, department, position, photo, custom_attributes, created_by, 
 		created_date, updated_by, updated_date, is_active FROM m_employee%s ORDER BY %s %s LIMIT $%d OFFSET $%d`,
 		whereClause, sortBy, strings.ToUpper(sortOrder), argIndex, argIndex+1)
@@ -255,7 +265,7 @@ func GetEmployeeList(w http.ResponseWriter, r *http.Request) {
 
 		rows.Scan(&emp.EmployeeID, &emp.EmploymentType, &emp.Title, &emp.FirstNameEN, &emp.LastNameEN,
 			&emp.FirstNameTH, &emp.LastNameTH, &emp.NickNameEN, &emp.NickNameTH, &emp.PhoneNumber,
-			&emp.CompanyEmail, &emp.Nationality, &emp.Gender, &emp.TaxID, &birthDate, &startWorkDate,
+			&emp.CompanyEmail, &emp.PersonalEmail, &emp.Nationality, &emp.Gender, &emp.TaxID, &birthDate, &startWorkDate,
 			&emp.Status, &emp.Remark, &emp.Department, &emp.Position, &emp.Photo, &emp.CustomAttributes,
 			&emp.CreatedBy, &createdDate, &updatedBy, &updatedDate, &emp.IsActive)
 

@@ -58,6 +58,7 @@ func InitDB() {
 		nick_name_th VARCHAR(50) NOT NULL,
 		phone_number VARCHAR(20) NOT NULL,
 		company_email VARCHAR(320) NOT NULL,
+		personal_email VARCHAR(320) NOT NULL,
 		nationality VARCHAR(50) NOT NULL,
 		gender INT NOT NULL,
 		tax_id VARCHAR(13) NOT NULL,
