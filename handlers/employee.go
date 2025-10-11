@@ -133,7 +133,7 @@ func CreateEmployee(w http.ResponseWriter, r *http.Request) {
 	// Insert address if provided
 	if employee.Address.District != "" || employee.Address.Address != "" {
 		addressQuery := `INSERT INTO r_address (
-			"employee_id", "OwnerType", "AddressType", "District", "SubDistrict", "Province", "PostalCode", "address"
+			employee_id, owner_type, address_type, district, sub_district, province, postal_code, address
 		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
 
 		// Set default values for address
@@ -241,7 +241,7 @@ func GetEmployeeByID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Fetch address data
-	addressQuery := `SELECT "OwnerType", "AddressType", "District", "SubDistrict", "Province", "PostalCode", "address" FROM r_address WHERE "employee_id" = $1`
+	addressQuery := `SELECT owner_type, address_type, district, sub_district, province, postal_code, address FROM r_address WHERE employee_id = $1`
 
 	var address Address
 	err = DB.QueryRow(addressQuery, employeeID).Scan(
@@ -445,7 +445,7 @@ func UpdateEmployee(w http.ResponseWriter, r *http.Request) {
 	if employee.Address.District != "" || employee.Address.Address != "" {
 		// Check if address exists
 		var existingCount int
-		countQuery := `SELECT COUNT(*) FROM r_address WHERE "employee_id" = $1`
+		countQuery := `SELECT COUNT(*) FROM r_address WHERE employee_id = $1`
 		err = tx.QueryRow(countQuery, employeeID).Scan(&existingCount)
 		if err != nil {
 			http.Error(w, "Error checking existing address: "+err.Error(), http.StatusInternalServerError)
@@ -464,8 +464,8 @@ func UpdateEmployee(w http.ResponseWriter, r *http.Request) {
 
 		if existingCount > 0 {
 			// Update existing address
-			updateAddressQuery := `UPDATE r_address SET "OwnerType"=$1, "AddressType"=$2, "District"=$3, "SubDistrict"=$4, 
-				"Province"=$5, "PostalCode"=$6, "address"=$7 WHERE "employee_id"=$8`
+			updateAddressQuery := `UPDATE r_address SET owner_type=$1, address_type=$2, district=$3, sub_district=$4, 
+				province=$5, postal_code=$6, address=$7 WHERE employee_id=$8`
 
 			_, err = tx.Exec(updateAddressQuery,
 				ownerType, addressType, employee.Address.District, employee.Address.SubDistrict,
@@ -475,7 +475,7 @@ func UpdateEmployee(w http.ResponseWriter, r *http.Request) {
 		} else {
 			// Insert new address
 			insertAddressQuery := `INSERT INTO r_address (
-				"employee_id", "OwnerType", "AddressType", "District", "SubDistrict", "Province", "PostalCode", "address"
+				employee_id, owner_type, address_type, district, sub_district, province, postal_code, address
 			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
 
 			_, err = tx.Exec(insertAddressQuery,
@@ -513,7 +513,7 @@ func UpdateEmployee(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Fetch updated address data
-	addressQuery := `SELECT "OwnerType", "AddressType", "District", "SubDistrict", "Province", "PostalCode", "address" FROM r_address WHERE "employee_id" = $1`
+	addressQuery := `SELECT owner_type, address_type, district, sub_district, province, postal_code, address FROM r_address WHERE employee_id = $1`
 
 	var address Address
 	err = DB.QueryRow(addressQuery, employeeID).Scan(
