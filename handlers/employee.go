@@ -9,35 +9,47 @@ import (
 	"strings"
 )
 
+type Address struct {
+	EmployeeID  string `json:"employee_id"`
+	OwnerType   int    `json:"owner_type"`
+	AddressType int    `json:"address_type"`
+	District    string `json:"district"`
+	SubDistrict string `json:"sub_district"`
+	Province    string `json:"province"`
+	PostalCode  string `json:"postal_code"`
+	Address     string `json:"address"`
+}
+
 type Employee struct {
-	EmployeeID       string `json:"employee_id"`
-	EmploymentType   int    `json:"employment_type"`
-	Title            int    `json:"title"`
-	FirstNameEN      string `json:"first_name_en"`
-	LastNameEN       string `json:"last_name_en"`
-	FirstNameTH      string `json:"first_name_th"`
-	LastNameTH       string `json:"last_name_th"`
-	NickNameEN       string `json:"nick_name_en"`
-	NickNameTH       string `json:"nick_name_th"`
-	PhoneNumber      string `json:"phone_number"`
-	CompanyEmail     string `json:"company_email"`
-	PersonalEmail    string `json:"personal_email"`
-	Nationality      string `json:"nationality"`
-	Gender           int    `json:"gender"`
-	TaxID            string `json:"tax_id"`
-	BirthDate        string `json:"birth_date"`
-	StartWorkDate    string `json:"start_work_date"`
-	Status           int    `json:"status"`
-	Remark           string `json:"remark"`
-	Department       string `json:"department"`
-	Position         string `json:"position"`
-	Photo            string `json:"photo"`
-	CustomAttributes string `json:"custom_attributes"`
-	CreatedBy        string `json:"created_by"`
-	CreatedDate      string `json:"created_date"`
-	UpdatedBy        string `json:"updated_by,omitempty"`
-	UpdatedDate      string `json:"updated_date,omitempty"`
-	IsActive         bool   `json:"is_active"`
+	EmployeeID       string  `json:"employee_id"`
+	EmploymentType   int     `json:"employment_type"`
+	Title            int     `json:"title"`
+	FirstNameEN      string  `json:"first_name_en"`
+	LastNameEN       string  `json:"last_name_en"`
+	FirstNameTH      string  `json:"first_name_th"`
+	LastNameTH       string  `json:"last_name_th"`
+	NickNameEN       string  `json:"nick_name_en"`
+	NickNameTH       string  `json:"nick_name_th"`
+	PhoneNumber      string  `json:"phone_number"`
+	CompanyEmail     string  `json:"company_email"`
+	PersonalEmail    string  `json:"personal_email"`
+	Nationality      string  `json:"nationality"`
+	Gender           int     `json:"gender"`
+	TaxID            string  `json:"tax_id"`
+	BirthDate        string  `json:"birth_date"`
+	StartWorkDate    string  `json:"start_work_date"`
+	Status           int     `json:"status"`
+	Remark           string  `json:"remark"`
+	Department       string  `json:"department"`
+	Position         string  `json:"position"`
+	Photo            string  `json:"photo"`
+	CustomAttributes string  `json:"custom_attributes"`
+	CreatedBy        string  `json:"created_by"`
+	CreatedDate      string  `json:"created_date"`
+	UpdatedBy        string  `json:"updated_by,omitempty"`
+	UpdatedDate      string  `json:"updated_date,omitempty"`
+	IsActive         bool    `json:"is_active"`
+	Address          Address `json:"address,omitempty"` // Employee address
 }
 
 type EmployeeListResponse struct {
@@ -86,7 +98,16 @@ func CreateEmployee(w http.ResponseWriter, r *http.Request) {
 		startWorkDate = employee.StartWorkDate
 	}
 
-	query := `INSERT INTO m_employee (
+	// Start transaction
+	tx, err := DB.Begin()
+	if err != nil {
+		http.Error(w, "Error starting transaction: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer tx.Rollback()
+
+	// Insert employee
+	employeeQuery := `INSERT INTO m_employee (
 		employment_type, title, first_name_en, last_name_en, first_name_th, last_name_th,
 		nick_name_en, nick_name_th, phone_number, company_email, personal_email, nationality, gender,
 		tax_id, birth_date, start_work_date, status, remark, department, position,
@@ -95,7 +116,7 @@ func CreateEmployee(w http.ResponseWriter, r *http.Request) {
 	RETURNING employee_id, created_date`
 
 	var createdDate sql.NullTime
-	err := DB.QueryRow(query,
+	err = tx.QueryRow(employeeQuery,
 		employee.EmploymentType, employee.Title, employee.FirstNameEN, employee.LastNameEN,
 		employee.FirstNameTH, employee.LastNameTH, employee.NickNameEN, employee.NickNameTH,
 		employee.PhoneNumber, employee.CompanyEmail, employee.PersonalEmail, employee.Nationality, employee.Gender,
@@ -106,6 +127,41 @@ func CreateEmployee(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		http.Error(w, "Error creating employee: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Insert address if provided
+	if employee.Address.District != "" || employee.Address.Address != "" {
+		addressQuery := `INSERT INTO r_address (
+			"employee_id", "OwnerType", "AddressType", "District", "SubDistrict", "Province", "PostalCode", "address"
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
+
+		// Set default values for address
+		ownerType := employee.Address.OwnerType
+		if ownerType == 0 {
+			ownerType = 1 // Default to employee type
+		}
+		addressType := employee.Address.AddressType
+		if addressType == 0 {
+			addressType = 1 // Default to home address
+		}
+
+		_, err = tx.Exec(addressQuery,
+			employee.EmployeeID, ownerType, addressType,
+			employee.Address.District, employee.Address.SubDistrict,
+			employee.Address.Province, employee.Address.PostalCode,
+			employee.Address.Address,
+		)
+
+		if err != nil {
+			http.Error(w, "Error creating employee address: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	// Commit transaction
+	if err = tx.Commit(); err != nil {
+		http.Error(w, "Error committing transaction: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -183,6 +239,22 @@ func GetEmployeeByID(w http.ResponseWriter, r *http.Request) {
 	if updatedDate.Valid {
 		employee.UpdatedDate = updatedDate.Time.Format("2006-01-02 15:04:05")
 	}
+
+	// Fetch address data
+	addressQuery := `SELECT "OwnerType", "AddressType", "District", "SubDistrict", "Province", "PostalCode", "address" FROM r_address WHERE "employee_id" = $1`
+
+	var address Address
+	err = DB.QueryRow(addressQuery, employeeID).Scan(
+		&address.OwnerType, &address.AddressType, &address.District,
+		&address.SubDistrict, &address.Province, &address.PostalCode, &address.Address,
+	)
+
+	// If address is found, add it to employee
+	if err == nil {
+		address.EmployeeID = employeeID
+		employee.Address = address
+	}
+	// Ignore sql.ErrNoRows for address as it's optional
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(employee)
@@ -327,6 +399,14 @@ func UpdateEmployee(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Start transaction
+	tx, err := DB.Begin()
+	if err != nil {
+		http.Error(w, "Error starting transaction: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer tx.Rollback()
+
 	query := `UPDATE m_employee SET employment_type=$1, title=$2, first_name_en=$3, last_name_en=$4,
 		first_name_th=$5, last_name_th=$6, nick_name_en=$7, nick_name_th=$8, phone_number=$9, company_email=$10,
 		nationality=$11, gender=$12, tax_id=$13, birth_date=$14, start_work_date=$15, status=$16, remark=$17,
@@ -340,7 +420,7 @@ func UpdateEmployee(w http.ResponseWriter, r *http.Request) {
 	var birthDate, startWorkDate, createdDate, updatedDate sql.NullTime
 	var updatedBy sql.NullString
 
-	err := DB.QueryRow(query, employee.EmploymentType, employee.Title, employee.FirstNameEN, employee.LastNameEN,
+	err = tx.QueryRow(query, employee.EmploymentType, employee.Title, employee.FirstNameEN, employee.LastNameEN,
 		employee.FirstNameTH, employee.LastNameTH, employee.NickNameEN, employee.NickNameTH, employee.PhoneNumber,
 		employee.CompanyEmail, employee.Nationality, employee.Gender, employee.TaxID, employee.BirthDate,
 		employee.StartWorkDate, employee.Status, employee.Remark, employee.Department, employee.Position,
@@ -361,6 +441,61 @@ func UpdateEmployee(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Update or insert address if provided
+	if employee.Address.District != "" || employee.Address.Address != "" {
+		// Check if address exists
+		var existingCount int
+		countQuery := `SELECT COUNT(*) FROM r_address WHERE "employee_id" = $1`
+		err = tx.QueryRow(countQuery, employeeID).Scan(&existingCount)
+		if err != nil {
+			http.Error(w, "Error checking existing address: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// Set default values for address
+		ownerType := employee.Address.OwnerType
+		if ownerType == 0 {
+			ownerType = 1 // Default to employee type
+		}
+		addressType := employee.Address.AddressType
+		if addressType == 0 {
+			addressType = 1 // Default to home address
+		}
+
+		if existingCount > 0 {
+			// Update existing address
+			updateAddressQuery := `UPDATE r_address SET "OwnerType"=$1, "AddressType"=$2, "District"=$3, "SubDistrict"=$4, 
+				"Province"=$5, "PostalCode"=$6, "address"=$7 WHERE "employee_id"=$8`
+
+			_, err = tx.Exec(updateAddressQuery,
+				ownerType, addressType, employee.Address.District, employee.Address.SubDistrict,
+				employee.Address.Province, employee.Address.PostalCode, employee.Address.Address,
+				employeeID,
+			)
+		} else {
+			// Insert new address
+			insertAddressQuery := `INSERT INTO r_address (
+				"employee_id", "OwnerType", "AddressType", "District", "SubDistrict", "Province", "PostalCode", "address"
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
+
+			_, err = tx.Exec(insertAddressQuery,
+				employeeID, ownerType, addressType, employee.Address.District, employee.Address.SubDistrict,
+				employee.Address.Province, employee.Address.PostalCode, employee.Address.Address,
+			)
+		}
+
+		if err != nil {
+			http.Error(w, "Error updating employee address: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	// Commit transaction
+	if err = tx.Commit(); err != nil {
+		http.Error(w, "Error committing transaction: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	if birthDate.Valid {
 		updatedEmp.BirthDate = birthDate.Time.Format("2006-01-02 15:04:05")
 	}
@@ -376,6 +511,22 @@ func UpdateEmployee(w http.ResponseWriter, r *http.Request) {
 	if updatedDate.Valid {
 		updatedEmp.UpdatedDate = updatedDate.Time.Format("2006-01-02 15:04:05")
 	}
+
+	// Fetch updated address data
+	addressQuery := `SELECT "OwnerType", "AddressType", "District", "SubDistrict", "Province", "PostalCode", "address" FROM r_address WHERE "employee_id" = $1`
+
+	var address Address
+	err = DB.QueryRow(addressQuery, employeeID).Scan(
+		&address.OwnerType, &address.AddressType, &address.District,
+		&address.SubDistrict, &address.Province, &address.PostalCode, &address.Address,
+	)
+
+	// If address is found, add it to employee
+	if err == nil {
+		address.EmployeeID = employeeID
+		updatedEmp.Address = address
+	}
+	// Ignore sql.ErrNoRows for address as it's optional
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(updatedEmp)

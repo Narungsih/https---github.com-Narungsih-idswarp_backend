@@ -79,10 +79,32 @@ func InitDB() {
 
 	_, err = DB.Exec(createTableQuery)
 	if err != nil {
-		log.Fatal("Error creating table:", err)
+		log.Fatal("Error creating employee table:", err)
 	}
 
-	log.Println("Database connection established and table created successfully")
+	// Drop existing address table if it exists (to fix column issues)
+	_, _ = DB.Exec("DROP TABLE IF EXISTS r_address")
+
+	// Create address table
+	createAddressTableQuery := `
+	CREATE TABLE IF NOT EXISTS r_address (
+		"owner_id" UUID NOT NULL,
+		"owner_type" INTEGER DEFAULT 0 NOT NULL,
+		"address_type" INTEGER DEFAULT 0 NOT NULL,
+		"district" VARCHAR(35) DEFAULT '' NOT NULL,
+		"subdistrict" VARCHAR(35) DEFAULT '' NOT NULL,
+		"province" VARCHAR(35) DEFAULT '' NOT NULL,
+		"postalcode" VARCHAR(6) DEFAULT '' NOT NULL,
+		"address" VARCHAR(320) DEFAULT '' NOT NULL,
+		FOREIGN KEY ("owner_id") REFERENCES m_employee(employee_id) ON DELETE CASCADE
+	)`
+
+	_, err = DB.Exec(createAddressTableQuery)
+	if err != nil {
+		log.Fatal("Error creating address table:", err)
+	}
+
+	log.Println("Database connection established and tables created successfully")
 }
 
 // Close closes the database connection

@@ -265,9 +265,46 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "handlers.Address": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "address_type": {
+                    "type": "integer"
+                },
+                "district": {
+                    "type": "string"
+                },
+                "employee_id": {
+                    "type": "string"
+                },
+                "owner_type": {
+                    "type": "integer"
+                },
+                "postal_code": {
+                    "type": "string"
+                },
+                "province": {
+                    "type": "string"
+                },
+                "sub_district": {
+                    "type": "string"
+                }
+            }
+        },
         "handlers.Employee": {
             "type": "object",
             "properties": {
+                "address": {
+                    "description": "Employee address",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/handlers.Address"
+                        }
+                    ]
+                },
                 "birth_date": {
                     "type": "string"
                 },
@@ -317,6 +354,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "nick_name_th": {
+                    "type": "string"
+                },
+                "personal_email": {
                     "type": "string"
                 },
                 "phone_number": {
@@ -383,8 +423,8 @@ var SwaggerInfo = &swag.Spec{
 	Host:             "localhost:8080",
 	BasePath:         "/api",
 	Schemes:          []string{},
-	Title:            "IDS.Warp API",
-	Description:      "API for managing employee for The Island digital solution Co., Ltd.",
+	Title:            "Employee Management API",
+	Description:      "API for managing employees with bilingual support",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

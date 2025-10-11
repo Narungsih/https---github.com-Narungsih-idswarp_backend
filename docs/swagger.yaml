@@ -1,7 +1,30 @@
 basePath: /api
 definitions:
+  handlers.Address:
+    properties:
+      address:
+        type: string
+      address_type:
+        type: integer
+      district:
+        type: string
+      employee_id:
+        type: string
+      owner_type:
+        type: integer
+      postal_code:
+        type: string
+      province:
+        type: string
+      sub_district:
+        type: string
+    type: object
   handlers.Employee:
     properties:
+      address:
+        allOf:
+        - $ref: '#/definitions/handlers.Address'
+        description: Employee address
       birth_date:
         type: string
       company_email:
@@ -35,6 +58,8 @@ definitions:
       nick_name_en:
         type: string
       nick_name_th:
+        type: string
+      personal_email:
         type: string
       phone_number:
         type: string

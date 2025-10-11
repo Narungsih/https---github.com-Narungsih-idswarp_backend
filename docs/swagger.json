@@ -259,9 +259,46 @@
         }
     },
     "definitions": {
+        "handlers.Address": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "address_type": {
+                    "type": "integer"
+                },
+                "district": {
+                    "type": "string"
+                },
+                "employee_id": {
+                    "type": "string"
+                },
+                "owner_type": {
+                    "type": "integer"
+                },
+                "postal_code": {
+                    "type": "string"
+                },
+                "province": {
+                    "type": "string"
+                },
+                "sub_district": {
+                    "type": "string"
+                }
+            }
+        },
         "handlers.Employee": {
             "type": "object",
             "properties": {
+                "address": {
+                    "description": "Employee address",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/handlers.Address"
+                        }
+                    ]
+                },
                 "birth_date": {
                     "type": "string"
                 },
@@ -311,6 +348,9 @@
                     "type": "string"
                 },
                 "nick_name_th": {
+                    "type": "string"
+                },
+                "personal_email": {
                     "type": "string"
                 },
                 "phone_number": {
