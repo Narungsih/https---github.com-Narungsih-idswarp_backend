@@ -14,9 +14,9 @@ import (
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
-// @title Employee Management API
+// @title Employee Management & Location API
 // @version 1.0
-// @description API for managing employees with bilingual support
+// @description API for managing employees with bilingual support and location dropdown data
 // @host localhost:8080
 // @BasePath /api
 
@@ -59,6 +59,12 @@ func main() {
 	http.HandleFunc("/api/employee", middleware.EnableCORS(employeeHandler))
 	http.HandleFunc("/api/employee/", middleware.EnableCORS(employeeHandler))
 	http.HandleFunc("/api/employees", middleware.EnableCORS(handlers.GetEmployeeList))
+
+	// Location dropdown routes
+	http.HandleFunc("/api/geographies", middleware.EnableCORS(handlers.GetGeographies))
+	http.HandleFunc("/api/provinces", middleware.EnableCORS(handlers.GetProvinces))
+	http.HandleFunc("/api/districts", middleware.EnableCORS(handlers.GetDistricts))
+	http.HandleFunc("/api/subdistricts", middleware.EnableCORS(handlers.GetSubDistricts))
 
 	// Swagger route
 	http.HandleFunc("/swagger/", httpSwagger.WrapHandler)

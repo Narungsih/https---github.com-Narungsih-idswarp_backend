@@ -19,6 +19,23 @@ definitions:
       sub_district:
         type: string
     type: object
+  handlers.District:
+    properties:
+      created_at:
+        type: string
+      deleted_at:
+        type: string
+      district_id:
+        type: integer
+      name_en:
+        type: string
+      name_th:
+        type: string
+      province_id:
+        type: integer
+      updated_at:
+        type: string
+    type: object
   handlers.Employee:
     properties:
       address:
@@ -97,13 +114,85 @@ definitions:
       total_pages:
         type: integer
     type: object
+  handlers.Geography:
+    properties:
+      geography_id:
+        type: integer
+      name:
+        type: string
+    type: object
+  handlers.Province:
+    properties:
+      created_at:
+        type: string
+      deleted_at:
+        type: string
+      geography_id:
+        type: integer
+      province_id:
+        type: integer
+      province_name_en:
+        type: string
+      province_name_th:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  handlers.SubDistrict:
+    properties:
+      created_at:
+        type: string
+      deleted_at:
+        type: string
+      district_id:
+        type: integer
+      lat:
+        type: string
+      long:
+        type: string
+      name_en:
+        type: string
+      name_th:
+        type: string
+      sub_district_id:
+        type: integer
+      updated_at:
+        type: string
+      zip_code:
+        type: integer
+    type: object
 host: localhost:8080
 info:
   contact: {}
-  description: API for managing employees with bilingual support
-  title: Employee Management API
+  description: API for managing employees with bilingual support and location dropdown
+    data
+  title: Employee Management & Location API
   version: "1.0"
 paths:
+  /districts:
+    get:
+      description: Get list of districts, optionally filtered by province_id
+      parameters:
+      - description: Province ID to filter districts
+        in: query
+        name: province_id
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/handlers.District'
+            type: array
+        "500":
+          description: Server error
+          schema:
+            type: string
+      summary: Get districts
+      tags:
+      - location
   /employee:
     post:
       consumes:
@@ -269,4 +358,71 @@ paths:
       summary: Get list of employees
       tags:
       - employee
+  /geographies:
+    get:
+      description: Get list of all geographies
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/handlers.Geography'
+            type: array
+        "500":
+          description: Server error
+          schema:
+            type: string
+      summary: Get all geographies
+      tags:
+      - location
+  /provinces:
+    get:
+      description: Get list of provinces, optionally filtered by geography_id
+      parameters:
+      - description: Geography ID to filter provinces
+        in: query
+        name: geography_id
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/handlers.Province'
+            type: array
+        "500":
+          description: Server error
+          schema:
+            type: string
+      summary: Get provinces
+      tags:
+      - location
+  /subdistricts:
+    get:
+      description: Get list of sub-districts, optionally filtered by district_id
+      parameters:
+      - description: District ID to filter sub-districts
+        in: query
+        name: district_id
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/handlers.SubDistrict'
+            type: array
+        "500":
+          description: Server error
+          schema:
+            type: string
+      summary: Get sub-districts
+      tags:
+      - location
 swagger: "2.0"
