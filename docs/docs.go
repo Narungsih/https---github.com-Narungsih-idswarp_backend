@@ -358,6 +358,43 @@ const docTemplate = `{
                 }
             }
         },
+        "/positions": {
+            "get": {
+                "description": "Get list of positions, optionally filtered by department_id",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "department"
+                ],
+                "summary": "Get positions",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Department ID to filter positions",
+                        "name": "department_id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/handlers.Position"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/provinces": {
             "get": {
                 "description": "Get list of provinces, optionally filtered by geography_id",
@@ -633,6 +670,29 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "handlers.Position": {
+            "type": "object",
+            "properties": {
+                "acronym": {
+                    "type": "string"
+                },
+                "created_date": {
+                    "type": "string"
+                },
+                "department_id": {
+                    "type": "integer"
+                },
+                "position_id": {
+                    "type": "integer"
+                },
+                "position_name": {
+                    "type": "string"
+                },
+                "updated_date": {
                     "type": "string"
                 }
             }

@@ -132,6 +132,21 @@ definitions:
       name:
         type: string
     type: object
+  handlers.Position:
+    properties:
+      acronym:
+        type: string
+      created_date:
+        type: string
+      department_id:
+        type: integer
+      position_id:
+        type: integer
+      position_name:
+        type: string
+      updated_date:
+        type: string
+    type: object
   handlers.Province:
     properties:
       created_at:
@@ -407,6 +422,30 @@ paths:
       summary: Get all geographies
       tags:
       - location
+  /positions:
+    get:
+      description: Get list of positions, optionally filtered by department_id
+      parameters:
+      - description: Department ID to filter positions
+        in: query
+        name: department_id
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/handlers.Position'
+            type: array
+        "500":
+          description: Server error
+          schema:
+            type: string
+      summary: Get positions
+      tags:
+      - department
   /provinces:
     get:
       description: Get list of provinces, optionally filtered by geography_id
