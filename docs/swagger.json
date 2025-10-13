@@ -9,6 +9,35 @@
     "host": "localhost:8080",
     "basePath": "/api",
     "paths": {
+        "/departments": {
+            "get": {
+                "description": "Get list of all departments",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "department"
+                ],
+                "summary": "Get all departments",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/handlers.Department"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/districts": {
             "get": {
                 "description": "Get list of districts, optionally filtered by province_id",
@@ -424,6 +453,23 @@
                     "type": "string"
                 },
                 "sub_district": {
+                    "type": "string"
+                }
+            }
+        },
+        "handlers.Department": {
+            "type": "object",
+            "properties": {
+                "created_date": {
+                    "type": "string"
+                },
+                "department_id": {
+                    "type": "integer"
+                },
+                "department_name": {
+                    "type": "string"
+                },
+                "updated_date": {
                     "type": "string"
                 }
             }

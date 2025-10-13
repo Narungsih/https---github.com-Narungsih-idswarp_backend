@@ -66,6 +66,9 @@ func main() {
 	http.HandleFunc("/api/districts", middleware.EnableCORS(handlers.GetDistricts))
 	http.HandleFunc("/api/subdistricts", middleware.EnableCORS(handlers.GetSubDistricts))
 
+	// Department routes
+	http.HandleFunc("/api/departments", middleware.EnableCORS(handlers.GetDepartments))
+
 	// Swagger route
 	http.HandleFunc("/swagger/", httpSwagger.WrapHandler)
 

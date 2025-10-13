@@ -19,6 +19,17 @@ definitions:
       sub_district:
         type: string
     type: object
+  handlers.Department:
+    properties:
+      created_date:
+        type: string
+      department_id:
+        type: integer
+      department_name:
+        type: string
+      updated_date:
+        type: string
+    type: object
   handlers.District:
     properties:
       created_at:
@@ -169,6 +180,25 @@ info:
   title: Employee Management & Location API
   version: "1.0"
 paths:
+  /departments:
+    get:
+      description: Get list of all departments
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/handlers.Department'
+            type: array
+        "500":
+          description: Server error
+          schema:
+            type: string
+      summary: Get all departments
+      tags:
+      - department
   /districts:
     get:
       description: Get list of districts, optionally filtered by province_id
