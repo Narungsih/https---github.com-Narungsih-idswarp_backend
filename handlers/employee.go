@@ -270,6 +270,10 @@ func GetEmployeeByID(w http.ResponseWriter, r *http.Request) {
 // @Param sort_by query string false "Sort field" default(created_date)
 // @Param sort_order query string false "Sort order (asc/desc)" default(asc)
 // @Param search query string false "Search term"
+// @Param search_name query string false "Search by name (first or last name)"
+// @Param department query string false "Filter by department"
+// @Param position query string false "Filter by position"
+// @Param status query int false "Filter by status"
 // @Success 200 {object} EmployeeListResponse
 // @Failure 500 {string} string "Server error"
 // @Router /employees [get]
@@ -297,18 +301,62 @@ func GetEmployeeList(w http.ResponseWriter, r *http.Request) {
 	if sortOrder != "asc" && sortOrder != "desc" {
 		sortOrder = "asc"
 	}
+
+	// Get search parameters
 	search := query.Get("search")
+	searchName := query.Get("search_name")
+	department := query.Get("department")
+	position := query.Get("position")
+	status := query.Get("status")
 
 	whereClause := ""
 	args := []interface{}{}
 	argIndex := 1
+	conditions := []string{}
 
+	// Legacy search parameter (for backward compatibility)
 	if search != "" {
-		whereClause = fmt.Sprintf(" WHERE (first_name_en ILIKE $%d OR last_name_en ILIKE $%d OR company_email ILIKE $%d)",
-			argIndex, argIndex+1, argIndex+2)
+		conditions = append(conditions, fmt.Sprintf("(first_name_en ILIKE $%d OR last_name_en ILIKE $%d OR company_email ILIKE $%d)", argIndex, argIndex+1, argIndex+2))
 		searchPattern := "%" + search + "%"
 		args = append(args, searchPattern, searchPattern, searchPattern)
 		argIndex += 3
+	}
+
+	// Search by name (first_name_en, last_name_en, first_name_th, last_name_th)
+	if searchName != "" {
+		conditions = append(conditions, fmt.Sprintf("(first_name_en ILIKE $%d OR last_name_en ILIKE $%d OR first_name_th ILIKE $%d OR last_name_th ILIKE $%d)", argIndex, argIndex+1, argIndex+2, argIndex+3))
+		namePattern := "%" + searchName + "%"
+		args = append(args, namePattern, namePattern, namePattern, namePattern)
+		argIndex += 4
+	}
+
+	// Filter by department
+	if department != "" {
+		conditions = append(conditions, fmt.Sprintf("department ILIKE $%d", argIndex))
+		args = append(args, "%"+department+"%")
+		argIndex++
+	}
+
+	// Filter by position
+	if position != "" {
+		conditions = append(conditions, fmt.Sprintf("position ILIKE $%d", argIndex))
+		args = append(args, "%"+position+"%")
+		argIndex++
+	}
+
+	// Filter by status
+	if status != "" {
+		statusInt, err := strconv.Atoi(status)
+		if err == nil {
+			conditions = append(conditions, fmt.Sprintf("status = $%d", argIndex))
+			args = append(args, statusInt)
+			argIndex++
+		}
+	}
+
+	// Build WHERE clause
+	if len(conditions) > 0 {
+		whereClause = " WHERE " + strings.Join(conditions, " AND ")
 	}
 
 	var totalRecords int
