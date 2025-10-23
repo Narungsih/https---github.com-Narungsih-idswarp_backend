@@ -90,7 +90,7 @@ func CreateEmployee(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Convert string dates to nil if they're placeholder values
-	var birthDate, startWorkDate interface{}
+	var birthDate, startWorkDate any
 	if employee.BirthDate != "" && employee.BirthDate != "string" {
 		birthDate = employee.BirthDate
 	}
@@ -112,7 +112,7 @@ func CreateEmployee(w http.ResponseWriter, r *http.Request) {
 		nick_name_en, nick_name_th, phone_number, company_email, personal_email, nationality, gender,
 		tax_id, birth_date, start_work_date, status, remark, department, position,
 		photo, custom_attributes, created_by, is_active
-	) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24) 
+	) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)
 	RETURNING employee_id, created_date`
 
 	var createdDate sql.NullTime
@@ -197,8 +197,8 @@ func GetEmployeeByID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	query := `SELECT employee_id, employment_type, title, first_name_en, last_name_en, first_name_th, last_name_th,
-		nick_name_en, nick_name_th, phone_number, company_email, personal_email, nationality, gender, tax_id, birth_date, 
-		start_work_date, status, remark, department, position, photo, custom_attributes, created_by, 
+		nick_name_en, nick_name_th, phone_number, company_email, personal_email, nationality, gender, tax_id, birth_date,
+		start_work_date, status, remark, department, position, photo, custom_attributes, created_by,
 		created_date, updated_by, updated_date, is_active FROM m_employee WHERE employee_id = $1`
 
 	var employee Employee
@@ -322,12 +322,12 @@ func GetEmployeeList(w http.ResponseWriter, r *http.Request) {
 		argIndex += 3
 	}
 
-	// Search by name (first_name_en, last_name_en, first_name_th, last_name_th)
+	// Search by name (first_name_en, last_name_en, first_name_th, last_name_th, nick_name_en, nick_name_th)
 	if searchName != "" {
-		conditions = append(conditions, fmt.Sprintf("(first_name_en ILIKE $%d OR last_name_en ILIKE $%d OR first_name_th ILIKE $%d OR last_name_th ILIKE $%d)", argIndex, argIndex+1, argIndex+2, argIndex+3))
+		conditions = append(conditions, fmt.Sprintf("(first_name_en ILIKE $%d OR last_name_en ILIKE $%d OR first_name_th ILIKE $%d OR last_name_th ILIKE $%d OR nick_name_en ILIKE $%d OR nick_name_th ILIKE $%d)", argIndex, argIndex+1, argIndex+2, argIndex+3, argIndex+4, argIndex+5))
 		namePattern := "%" + searchName + "%"
-		args = append(args, namePattern, namePattern, namePattern, namePattern)
-		argIndex += 4
+		args = append(args, namePattern, namePattern, namePattern, namePattern, namePattern, namePattern)
+		argIndex += 6
 	}
 
 	// Filter by department
@@ -363,9 +363,9 @@ func GetEmployeeList(w http.ResponseWriter, r *http.Request) {
 	DB.QueryRow("SELECT COUNT(*) FROM m_employee"+whereClause, args...).Scan(&totalRecords)
 
 	offset := (page - 1) * pageSize
-	mainQuery := fmt.Sprintf(`SELECT employee_id, employment_type, title, first_name_en, last_name_en, first_name_th, 
-		last_name_th, nick_name_en, nick_name_th, phone_number, company_email, personal_email, nationality, gender, tax_id, 
-		birth_date, start_work_date, status, remark, department, position, photo, custom_attributes, created_by, 
+	mainQuery := fmt.Sprintf(`SELECT employee_id, employment_type, title, first_name_en, last_name_en, first_name_th,
+		last_name_th, nick_name_en, nick_name_th, phone_number, company_email, personal_email, nationality, gender, tax_id,
+		birth_date, start_work_date, status, remark, department, position, photo, custom_attributes, created_by,
 		created_date, updated_by, updated_date, is_active FROM m_employee%s ORDER BY %s %s LIMIT $%d OFFSET $%d`,
 		whereClause, sortBy, strings.ToUpper(sortOrder), argIndex, argIndex+1)
 
@@ -458,10 +458,10 @@ func UpdateEmployee(w http.ResponseWriter, r *http.Request) {
 	query := `UPDATE m_employee SET employment_type=$1, title=$2, first_name_en=$3, last_name_en=$4,
 		first_name_th=$5, last_name_th=$6, nick_name_en=$7, nick_name_th=$8, phone_number=$9, company_email=$10,
 		nationality=$11, gender=$12, tax_id=$13, birth_date=$14, start_work_date=$15, status=$16, remark=$17,
-		department=$18, position=$19, photo=$20, custom_attributes=$21, updated_by=$22, updated_date=CURRENT_TIMESTAMP, 
-		is_active=$23 WHERE employee_id=$24 RETURNING employee_id, employment_type, title, first_name_en, last_name_en, 
-		first_name_th, last_name_th, nick_name_en, nick_name_th, phone_number, company_email, nationality, gender, tax_id, 
-		birth_date, start_work_date, status, remark, department, position, photo, custom_attributes, created_by, created_date, 
+		department=$18, position=$19, photo=$20, custom_attributes=$21, updated_by=$22, updated_date=CURRENT_TIMESTAMP,
+		is_active=$23 WHERE employee_id=$24 RETURNING employee_id, employment_type, title, first_name_en, last_name_en,
+		first_name_th, last_name_th, nick_name_en, nick_name_th, phone_number, company_email, nationality, gender, tax_id,
+		birth_date, start_work_date, status, remark, department, position, photo, custom_attributes, created_by, created_date,
 		updated_by, updated_date, is_active`
 
 	var updatedEmp Employee
@@ -512,7 +512,7 @@ func UpdateEmployee(w http.ResponseWriter, r *http.Request) {
 
 		if existingCount > 0 {
 			// Update existing address
-			updateAddressQuery := `UPDATE r_address SET owner_type=$1, address_type=$2, district=$3, sub_district=$4, 
+			updateAddressQuery := `UPDATE r_address SET owner_type=$1, address_type=$2, district=$3, sub_district=$4,
 				province=$5, postal_code=$6, address=$7 WHERE employee_id=$8`
 
 			_, err = tx.Exec(updateAddressQuery,
