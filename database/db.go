@@ -88,15 +88,15 @@ func InitDB() {
 	// Create address table
 	createAddressTableQuery := `
 	CREATE TABLE IF NOT EXISTS r_address (
-		"owner_id" UUID NOT NULL,
+		"employee_id" UUID NOT NULL,
 		"owner_type" INTEGER DEFAULT 0 NOT NULL,
 		"address_type" INTEGER DEFAULT 0 NOT NULL,
 		"district" VARCHAR(35) DEFAULT '' NOT NULL,
-		"subdistrict" VARCHAR(35) DEFAULT '' NOT NULL,
+		"sub_district" VARCHAR(35) DEFAULT '' NOT NULL,
 		"province" VARCHAR(35) DEFAULT '' NOT NULL,
-		"postalcode" VARCHAR(6) DEFAULT '' NOT NULL,
+		"postal_code" VARCHAR(6) DEFAULT '' NOT NULL,
 		"address" VARCHAR(320) DEFAULT '' NOT NULL,
-		FOREIGN KEY ("owner_id") REFERENCES m_employee(employee_id) ON DELETE CASCADE
+		FOREIGN KEY ("employee_id") REFERENCES m_employee(employee_id) ON DELETE CASCADE
 	)`
 
 	_, err = DB.Exec(createAddressTableQuery)
